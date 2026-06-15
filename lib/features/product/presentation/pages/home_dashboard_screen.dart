@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/product_cubit.dart';
 import '../cubit/product_state.dart';
 import 'product_detail_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({Key? key}) : super(key: key);
@@ -44,6 +45,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             icon: const Icon(Icons.search),
             onPressed: () {
               // Navigate to SearchFilterScreen
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'Profile',
+            onPressed: () {
+              context.push('/profile');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings, color: Colors.redAccent),
+            tooltip: 'Go to Admin',
+            onPressed: () {
+              context.push('/admin');
             },
           ),
         ],

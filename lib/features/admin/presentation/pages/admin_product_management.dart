@@ -8,7 +8,8 @@ import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
 
 class AdminProductManagement extends StatefulWidget {
-  const AdminProductManagement({Key? key}) : super(key: key);
+  final ProductModel? product;
+  const AdminProductManagement({Key? key, this.product}) : super(key: key);
 
   @override
   State<AdminProductManagement> createState() => _AdminProductManagementState();
@@ -25,6 +26,18 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
   List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.product != null) {
+      _nameController.text = widget.product!.name;
+      _brandController.text = widget.product!.brand;
+      _priceController.text = widget.product!.basePrice.toString();
+      _descController.text = widget.product!.description;
+      _stockController.text = widget.product!.stock.toString();
+    }
+  }
+
   Future<void> _pickImages() async {
     final pickedFiles = await _picker.pickMultiImage();
     if (pickedFiles.isNotEmpty) {
@@ -36,34 +49,47 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
 
   void _submitProduct() {
     if (_formKey.currentState?.validate() ?? false) {
-      if (_selectedImages.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one image')));
+      final isEditing = widget.product != null;
+      if (!isEditing && _selectedImages.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one image for new product')));
         return;
       }
 
-      final newProduct = ProductModel(
-        productId: const Uuid().v4(),
-        name: _nameController.text.trim(),
-        brand: _brandController.text.trim(),
-        basePrice: double.parse(_priceController.text.trim()),
-        description: _descController.text.trim(),
-        images: [], // Will be populated by Cubit
-        availableSizes: [38, 39, 40, 41, 42], // Mock sizes
-        colors: ['Black', 'White'], // Mock colors
-        stock: int.parse(_stockController.text.trim()),
-        salesCount: 0,
-        averageRating: 0.0,
-        reviewCount: 0,
-      );
+      if (isEditing) {
+        final updatedProduct = widget.product!.copyWith(
+          name: _nameController.text.trim(),
+          brand: _brandController.text.trim(),
+          basePrice: double.parse(_priceController.text.trim()),
+          description: _descController.text.trim(),
+          stock: int.parse(_stockController.text.trim()),
+        );
+        context.read<AdminCubit>().updateProductDetails(updatedProduct);
+      } else {
+        final newProduct = ProductModel(
+          productId: const Uuid().v4(),
+          name: _nameController.text.trim(),
+          brand: _brandController.text.trim(),
+          basePrice: double.parse(_priceController.text.trim()),
+          description: _descController.text.trim(),
+          images: [], // Will be populated by Cubit
+          availableSizes: [38, 39, 40, 41, 42], // Mock sizes
+          colors: ['Black', 'White'], // Mock colors
+          stock: int.parse(_stockController.text.trim()),
+          salesCount: 0,
+          averageRating: 0.0,
+          reviewCount: 0,
+          isActive: true,
+        );
 
-      context.read<AdminCubit>().createProductWithImages(newProduct, _selectedImages);
+        context.read<AdminCubit>().createProductWithImages(newProduct, _selectedImages);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Product')),
+      appBar: AppBar(title: Text(widget.product != null ? 'Edit Product' : 'Add Product')),
       body: BlocConsumer<AdminCubit, AdminState>(
         listener: (context, state) {
           if (state is AdminOperationSuccess) {
@@ -127,40 +153,42 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Image Picker
-                  const Text('Product Images', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ..._selectedImages.map((file) => Stack(
-                        children: [
-                          Image.file(file, width: 80, height: 80, fit: BoxFit.cover),
-                          Positioned(
-                            top: 0, right: 0,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _selectedImages.remove(file)),
-                              child: const Icon(Icons.cancel, color: Colors.red),
-                            ),
-                          )
-                        ],
-                      )),
-                      GestureDetector(
-                        onTap: _pickImages,
-                        child: Container(
-                          width: 80, height: 80,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.add_a_photo),
-                        ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 32),
+                  if (widget.product == null) ...[
+                    // Image Picker
+                    const Text('Product Images', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ..._selectedImages.map((file) => Stack(
+                          children: [
+                            Image.file(file, width: 80, height: 80, fit: BoxFit.cover),
+                            Positioned(
+                              top: 0, right: 0,
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedImages.remove(file)),
+                                child: const Icon(Icons.cancel, color: Colors.red),
+                              ),
+                            )
+                          ],
+                        )),
+                        GestureDetector(
+                          onTap: _pickImages,
+                          child: Container(
+                            width: 80, height: 80,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.add_a_photo),
+                          ),
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                   
                   ElevatedButton(
                     onPressed: _submitProduct,
-                    child: const Text('Create Product'),
+                    child: Text(widget.product != null ? 'Update Product' : 'Create Product'),
                   )
                 ],
               ),

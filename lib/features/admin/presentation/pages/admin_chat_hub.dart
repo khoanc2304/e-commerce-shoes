@@ -5,7 +5,7 @@ import '../../../chat/data/models/chat_model.dart';
 import '../../../chat/presentation/pages/chat_screen.dart';
 
 class AdminChatHub extends StatelessWidget {
-  const AdminChatHub({Key? key}) : super(key: key);
+  const AdminChatHub({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +41,9 @@ class AdminChatHub extends StatelessWidget {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Theme.of(context).primaryColor,
-                  child: Text(room.lastMessageSenderName.isNotEmpty ? room.lastMessageSenderName.substring(0, 1).toUpperCase() : 'U'),
+                  child: Text(room.userName.isNotEmpty ? room.userName.substring(0, 1).toUpperCase() : 'U'),
                 ),
-                title: Text(room.lastMessageSenderName.isNotEmpty ? room.lastMessageSenderName : 'User ${room.roomId.substring(0, 5)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(room.userName.isNotEmpty ? room.userName : 'User ${room.roomId.substring(0, 5)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(room.lastMessage, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: Text(lastMsgDate, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 onTap: () {

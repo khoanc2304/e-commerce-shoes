@@ -61,4 +61,39 @@ class AdminCubit extends Cubit<AdminState> {
       loadAnalytics(); 
     }
   }
+  Future<void> loadAllProducts() async {
+    emit(AdminLoading());
+    try {
+      final products = await _adminRepository.getAllProducts();
+      emit(AdminProductsLoaded(products));
+    } catch (e) {
+      emit(AdminError(e.toString()));
+    }
+  }
+
+  Future<void> toggleProductStatus(ProductModel product) async {
+    emit(AdminLoading());
+    try {
+      final updatedProduct = product.copyWith(isActive: !product.isActive);
+      await _adminRepository.updateProduct(updatedProduct);
+      // Reload products
+      final products = await _adminRepository.getAllProducts();
+      emit(AdminProductsLoaded(products));
+    } catch (e) {
+      emit(AdminError(e.toString()));
+    }
+  }
+
+  Future<void> updateProductDetails(ProductModel product) async {
+    emit(AdminLoading());
+    try {
+      await _adminRepository.updateProduct(product);
+      emit(const AdminOperationSuccess("Product updated successfully!"));
+      // Reload products
+      final products = await _adminRepository.getAllProducts();
+      emit(AdminProductsLoaded(products));
+    } catch (e) {
+      emit(AdminError(e.toString()));
+    }
+  }
 }

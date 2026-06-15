@@ -27,6 +27,21 @@ class AdminRepository {
   }
 
   // --- Product Management ---
+  Future<List<ProductModel>> getAllProducts() async {
+    try {
+      final snapshot = await _firestore
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch all products: $e');
+    }
+  }
+
   Future<void> addProduct(ProductModel product) async {
     try {
       await _firestore

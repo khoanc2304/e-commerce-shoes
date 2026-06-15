@@ -13,6 +13,7 @@ class ProductModel {
   final int salesCount;
   final double averageRating;
   final int reviewCount; // Added to help calculate math accurately
+  final bool isActive;
   final Timestamp? createdAt;
 
   ProductModel({
@@ -28,6 +29,7 @@ class ProductModel {
     required this.salesCount,
     required this.averageRating,
     required this.reviewCount,
+    this.isActive = true,
     this.createdAt,
   });
 
@@ -45,6 +47,7 @@ class ProductModel {
       'salesCount': salesCount,
       'averageRating': averageRating,
       'reviewCount': reviewCount,
+      'isActive': isActive,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
     };
   }
@@ -63,7 +66,42 @@ class ProductModel {
       salesCount: map['salesCount'] ?? 0,
       averageRating: (map['averageRating'] ?? 0.0).toDouble(),
       reviewCount: map['reviewCount'] ?? 0,
+      isActive: map['isActive'] ?? true,
       createdAt: map['createdAt'] as Timestamp?,
+    );
+  }
+
+  ProductModel copyWith({
+    String? productId,
+    String? name,
+    String? brand,
+    double? basePrice,
+    String? description,
+    List<String>? images,
+    List<int>? availableSizes,
+    List<String>? colors,
+    int? stock,
+    int? salesCount,
+    double? averageRating,
+    int? reviewCount,
+    bool? isActive,
+    Timestamp? createdAt,
+  }) {
+    return ProductModel(
+      productId: productId ?? this.productId,
+      name: name ?? this.name,
+      brand: brand ?? this.brand,
+      basePrice: basePrice ?? this.basePrice,
+      description: description ?? this.description,
+      images: images ?? this.images,
+      availableSizes: availableSizes ?? this.availableSizes,
+      colors: colors ?? this.colors,
+      stock: stock ?? this.stock,
+      salesCount: salesCount ?? this.salesCount,
+      averageRating: averageRating ?? this.averageRating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

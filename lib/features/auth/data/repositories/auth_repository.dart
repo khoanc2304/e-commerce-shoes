@@ -1,20 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in/google_sign_in.dart' as g_auth;
 import '../models/user_model.dart';
 
 class AuthRepository {
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
-  final GoogleSignIn _googleSignIn;
+  final g_auth.GoogleSignIn _googleSignIn;
 
   AuthRepository({
     firebase_auth.FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
-    GoogleSignIn? googleSignIn,
+    g_auth.GoogleSignIn? googleSignIn,
   })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+        _googleSignIn = googleSignIn ?? g_auth.GoogleSignIn.instance;
 
   Stream<firebase_auth.User?> get user => _firebaseAuth.authStateChanges();
 
@@ -78,15 +78,12 @@ class AuthRepository {
 
   Future<UserModel> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        throw Exception("Google Sign In was cancelled.");
-      }
+      final g_auth.GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final g_auth.GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       final firebase_auth.OAuthCredential credential = firebase_auth.GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: null,
         idToken: googleAuth.idToken,
       );
 

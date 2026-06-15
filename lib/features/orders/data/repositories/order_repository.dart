@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/order_model.dart';
-import '../../cart/data/models/cart_model.dart';
+import '../../../cart/data/models/cart_model.dart';
 
 class OrderRepository {
   final FirebaseFirestore _firestore;
@@ -48,7 +48,7 @@ class OrderRepository {
             throw Exception("Product ${item.productName} no longer exists.");
           }
           
-          final currentStock = productDoc.data()?['stock'] ?? 0;
+          final currentStock = (productDoc.data() as Map<String, dynamic>?)?['stock'] ?? 0;
           if (currentStock < item.quantity) {
             throw Exception("Insufficient stock for ${item.productName}. Only $currentStock left.");
           }
@@ -63,8 +63,8 @@ class OrderRepository {
           final item = cartItems[i];
           final productRef = _firestore.collection('products').doc(item.productId);
           
-          final currentStock = productDocs[i].data()?['stock'] ?? 0;
-          final currentSales = productDocs[i].data()?['salesCount'] ?? 0;
+          final currentStock = (productDocs[i].data() as Map<String, dynamic>?)?['stock'] ?? 0;
+          final currentSales = (productDocs[i].data() as Map<String, dynamic>?)?['salesCount'] ?? 0;
           
           transaction.update(productRef, {
             'stock': currentStock - item.quantity,

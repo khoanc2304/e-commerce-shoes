@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import 'package:go_router/go_router.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -45,8 +46,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               SnackBar(content: Text(state.message)),
             );
           } else if (state is AuthAuthenticated) {
-            // Usually navigate to Home or pop
-            Navigator.pop(context);
+            context.go('/home');
           }
         },
         builder: (context, state) {

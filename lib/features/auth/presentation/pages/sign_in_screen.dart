@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import 'sign_up_screen.dart';
-import 'profile_screen.dart'; // Just for routing on success if needed
+import 'package:go_router/go_router.dart';
+ // Just for routing on success if needed
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -61,11 +62,10 @@ class _SignInScreenState extends State<SignInScreen> {
               SnackBar(content: Text(state.message)),
             );
           } else if (state is AuthAuthenticated) {
-            // Navigate to home or profile depending on app routing
-            // Here we just show a success for demo
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Welcome back, ${state.user.fullName}')),
             );
+            context.go('/home');
           }
         },
         builder: (context, state) {

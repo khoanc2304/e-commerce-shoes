@@ -6,7 +6,10 @@ import '../../features/auth/presentation/pages/profile_screen.dart';
 import '../../features/product/presentation/pages/home_dashboard_screen.dart';
 import '../../features/cart/presentation/pages/cart_screen.dart';
 import '../../features/orders/presentation/pages/order_history_screen.dart';
-// import '../../features/admin/presentation/pages/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/pages/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/pages/admin_product_list_screen.dart';
+import '../../features/admin/presentation/pages/admin_product_management.dart';
+import '../../features/product/data/models/product_model.dart';
 
 class AppRouter {
   // Pass the AuthCubit or Auth state stream here if doing real redirection
@@ -45,10 +48,21 @@ class AppRouter {
         },
       ),
       // Admin Routes
-      // GoRoute(
-      //   path: '/admin',
-      //   builder: (BuildContext context, GoRouterState state) => const AdminDashboardScreen(),
-      // ),
+      GoRoute(
+        path: '/admin',
+        builder: (BuildContext context, GoRouterState state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/admin/products',
+        builder: (BuildContext context, GoRouterState state) => const AdminProductListScreen(),
+      ),
+      GoRoute(
+        path: '/admin/products/add_edit',
+        builder: (BuildContext context, GoRouterState state) {
+          final product = state.extra as ProductModel?;
+          return AdminProductManagement(product: product);
+        },
+      ),
     ],
     // redirect: (context, state) {
     //   // Implement role-based redirection here based on Auth state

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../orders/data/models/order_model.dart';
+import '../../../product/data/models/product_model.dart';
 
 abstract class AdminState extends Equatable {
   const AdminState();
@@ -20,6 +21,15 @@ class AdminAnalyticsLoaded extends AdminState {
 
   @override
   List<Object?> get props => [completedOrders, totalRevenue];
+}
+
+class AdminProductsLoaded extends AdminState {
+  final List<ProductModel> products;
+
+  const AdminProductsLoaded(this.products);
+
+  @override
+  List<Object?> get props => [products];
 }
 
 class AdminOperationSuccess extends AdminState {

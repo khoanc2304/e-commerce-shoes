@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/utils/seed_data.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
 
@@ -113,6 +115,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ],
                     ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.inventory),
+                            label: const Text('Manage Products'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () async {
+                              // We use push to allow coming back to dashboard
+                              // and not losing the analytics state, though it might reload
+                              await context.push('/admin/products'); 
+                              // Reload analytics when coming back from products screen
+                              if (context.mounted) {
+                                context.read<AdminCubit>().loadAnalytics();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    /*
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.download),
+                      label: const Text('AUTO-SEED MOCK DATA (1-Click)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      onPressed: () {
+                        // Gọi hàm nạp dữ liệu
+                        seedFirebaseData(context);
+                      },
+                    ),
+                    */
                     const SizedBox(height: 32),
                     const Text('Revenue Chart', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),

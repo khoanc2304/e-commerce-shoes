@@ -17,7 +17,7 @@ class ProductRepository {
     String? sortBy, // "latest", "price_asc", "price_desc", "sales"
   }) async {
     try {
-      Query query = _firestore.collection('products');
+      Query query = _firestore.collection('products').where('isActive', isEqualTo: true);
 
       // Multi-conditional filtering
       if (brand != null && brand.isNotEmpty) {

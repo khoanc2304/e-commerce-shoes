@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 /// Outline for the Invoice Trigger Service.
 /// This would typically be executed in a Firebase Cloud Function hooked to the 
@@ -59,10 +60,10 @@ class InvoiceTriggerService {
 
       if (response.statusCode >= 400) {
         // Logging error silently since it's an auxiliary service
-        print('Failed to send invoice: ${response.body}');
+        debugPrint('Failed to send invoice: ${response.body}');
       }
     } catch (e) {
-      print('Exception while sending invoice: $e');
+      debugPrint('Exception while sending invoice: $e');
     }
   }
 }
