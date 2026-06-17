@@ -54,317 +54,560 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Shoes X', style: TextStyle(fontWeight: FontWeight.bold)),
+        toolbarHeight: 50,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              context.push('/search');
-            },
-          ),
           if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings, color: Colors.redAccent),
-              tooltip: 'Go to Admin',
-              onPressed: () {
-                context.push('/admin');
-              },
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.admin_panel_settings, color: Colors.redAccent, size: 22),
+                tooltip: 'Go to Admin',
+                onPressed: () {
+                  context.push('/admin');
+                },
+              ),
             ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          // Banners
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: CarouselSlider(
-                options: CarouselOptions(
-                  height: 150.0,
-                  autoPlay: true,
-                  autoPlayInterval: const Duration(seconds: 2),
-                  enlargeCenterPage: true,
-                  viewportFraction: 0.85,
-                ),
-                items: _banners.map((url) {
-                  return Builder(
-                    builder: (BuildContext context) {
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          url,
-                          fit: BoxFit.cover,
-                          width: MediaQuery.of(context).size.width,
-                        ),
-                      );
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          
-          // Recently Viewed Section
-          SliverToBoxAdapter(
-            child: BlocBuilder<UserActivityCubit, UserActivityState>(
-              builder: (context, state) {
-                if (state.recentlyViewed.isEmpty) return const SizedBox.shrink();
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Header chào mừng cao cấp
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Recently Viewed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          TextButton(
-                            onPressed: () => context.read<UserActivityCubit>().clearRecent(),
-                            child: const Text('Clear All', style: TextStyle(color: Colors.red)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Welcome to Shoes X,',
+                          style: TextStyle(
+                            color: Color(0xFF8E8E9E),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          authState is AuthAuthenticated ? authState.user.fullName : 'Guest User',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1A1B2D),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => context.push('/profile'),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFEEEEF4), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                            )
+                          ]
+                        ),
+                        child: CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Theme.of(context).primaryColor,
+                          child: Text(
+                            authState is AuthAuthenticated 
+                                ? authState.user.fullName[0].toUpperCase() 
+                                : 'G',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    SizedBox(
-                      height: 140,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: state.recentlyViewed.length,
-                        itemBuilder: (context, index) {
-                          final product = state.recentlyViewed[index];
-                          return Container(
-                            width: 100,
-                            margin: const EdgeInsets.only(right: 12),
-                            child: Stack(
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    context.go('/home/product', extra: product);
-                                  },
-                                  child: Card(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ],
+                ),
+              ),
+            ),
+
+            // Thanh tìm kiếm (Search Bar) bo tròn sang trọng
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                child: GestureDetector(
+                  onTap: () => context.push('/search'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFEEEEF4), width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
+                        )
+                      ]
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, color: Color(0xFF8E8E9E), size: 22),
+                        const SizedBox(width: 14),
+                        const Text(
+                          'Search your favorite sneakers...',
+                          style: TextStyle(
+                            color: Color(0xFF8E8E9E),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.tune, color: Theme.of(context).primaryColor, size: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            // Banner Carousel
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: CarouselSlider(
+                  options: CarouselOptions(
+                    height: 160.0,
+                    autoPlay: true,
+                    autoPlayInterval: const Duration(seconds: 4),
+                    enlargeCenterPage: true,
+                    viewportFraction: 0.9,
+                  ),
+                  items: _banners.map((url) {
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
+                              )
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Image.network(
+                              url,
+                              fit: BoxFit.cover,
+                              width: MediaQuery.of(context).size.width,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            
+            // Recently Viewed Section
+            SliverToBoxAdapter(
+              child: BlocBuilder<UserActivityCubit, UserActivityState>(
+                builder: (context, state) {
+                  if (state.recentlyViewed.isEmpty) return const SizedBox.shrink();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Recently Viewed', 
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1B2D))
+                            ),
+                            TextButton(
+                              onPressed: () => context.read<UserActivityCubit>().clearRecent(),
+                              child: const Text('Clear All', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: state.recentlyViewed.length,
+                          itemBuilder: (context, index) {
+                            final product = state.recentlyViewed[index];
+                            return Container(
+                              width: 90,
+                              margin: const EdgeInsets.only(right: 14),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      context.go('/home/product', extra: product);
+                                    },
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
-                                        Expanded(
+                                        Container(
+                                          height: 80,
+                                          width: 80,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF5F5F9),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: const Color(0xFFEEEEF4), width: 1.2),
+                                          ),
                                           child: ClipRRect(
-                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                                            borderRadius: BorderRadius.circular(20),
                                             child: product.images.isNotEmpty
-                                                ? Image.network(product.images.first, fit: BoxFit.cover)
+                                                ? Image.network(
+                                                    product.images.first,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stackTrace) =>
+                                                        const Icon(Icons.image_not_supported, size: 24, color: Colors.grey),
+                                                  )
                                                 : const Icon(Icons.image, color: Colors.grey),
                                           ),
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(4.0),
-                                          child: Text(
-                                            product.name,
-                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            textAlign: TextAlign.center,
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          product.name,
+                                          style: const TextStyle(
+                                            fontSize: 12, 
+                                            fontWeight: FontWeight.w600, 
+                                            color: Color(0xFF1A1B2D)
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -2,
+                                    right: 2,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        context.read<UserActivityCubit>().removeRecent(product.productId);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(3),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(color: Colors.black12, blurRadius: 4),
+                                          ],
+                                        ),
+                                        child: const Icon(Icons.close, color: Colors.redAccent, size: 10),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // Brand Filter capsules
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: SizedBox(
+                  height: 46,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: _brands.length,
+                    itemBuilder: (context, index) {
+                      final brand = _brands[index];
+                      final isSelected = _selectedBrand == brand;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedBrand = brand;
+                          });
+                          _fetchProducts();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.only(right: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Theme.of(context).primaryColor : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? Theme.of(context).primaryColor : const Color(0xFFEEEEF4),
+                              width: 1.2,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Theme.of(context).primaryColor.withOpacity(0.25),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              brand,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : const Color(0xFF1A1B2D),
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            
+            // Products Grid
+            SliverPadding(
+              padding: const EdgeInsets.all(20.0),
+              sliver: BlocBuilder<ProductCubit, ProductState>(
+                builder: (context, state) {
+                  if (state is ProductLoading) {
+                    return const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  } else if (state is ProductError) {
+                    return SliverFillRemaining(
+                      child: Center(child: Text(state.message)),
+                    );
+                  } else if (state is ProductsLoaded) {
+                    final products = state.products;
+                    if (products.isEmpty) {
+                      return const SliverFillRemaining(
+                        child: Center(child: Text('No products found', style: TextStyle(color: Colors.grey))),
+                      );
+                    }
+                    return SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 18,
+                        crossAxisSpacing: 18,
+                        childAspectRatio: 0.72,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final product = products[index];
+                          return GestureDetector(
+                            onTap: () {
+                              context.go('/home/product', extra: product);
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: const Color(0xFFEEEEF4), width: 1),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.015),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          width: double.infinity,
+                                          margin: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF5F5F9),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: product.images.isEmpty
+                                              ? const Center(child: Icon(Icons.image, size: 40, color: Colors.grey))
+                                              : ClipRRect(
+                                                  borderRadius: BorderRadius.circular(20),
+                                                  child: Image.network(
+                                                    product.images.first, 
+                                                    fit: BoxFit.cover, 
+                                                    width: double.infinity,
+                                                    errorBuilder: (context, error, stackTrace) =>
+                                                        const Center(child: Icon(Icons.image_not_supported, color: Colors.grey)),
+                                                  ),
+                                                ),
+                                        ),
+                                        Positioned(
+                                          top: 14,
+                                          right: 14,
+                                          child: BlocBuilder<AuthCubit, AuthState>(
+                                            builder: (context, authState) {
+                                              if (authState is AuthAuthenticated) {
+                                                return Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(0.9),
+                                                    shape: BoxShape.circle,
+                                                    boxShadow: const [
+                                                      BoxShadow(color: Colors.black12, blurRadius: 4),
+                                                    ]
+                                                  ),
+                                                  child: IconButton(
+                                                    padding: EdgeInsets.zero,
+                                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                                    icon: const Icon(Icons.share, size: 16, color: Colors.black87),
+                                                    onPressed: () async {
+                                                      try {
+                                                        await ChatRepository().sendMessage(
+                                                          customerId: authState.user.uid,
+                                                          customerName: authState.user.fullName,
+                                                          customerEmail: authState.user.email,
+                                                          text: 'Hi Admin, I have a question about this product.',
+                                                          senderId: authState.user.uid,
+                                                          senderName: authState.user.fullName,
+                                                          isAdmin: false,
+                                                          productPayload: {
+                                                            'productId': product.productId,
+                                                            'name': product.name,
+                                                            'price': product.basePrice,
+                                                            'imageUrl': product.images.isNotEmpty ? product.images.first : '',
+                                                          },
+                                                        );
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product shared to chat!')));
+                                                        }
+                                                      } catch (e) {
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
+                                                        }
+                                                      }
+                                                    },
+                                                  ),
+                                                );
+                                              }
+                                              return const SizedBox.shrink();
+                                            },
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
-                                Positioned(
-                                  top: -4,
-                                  right: -4,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () {
-                                      context.read<UserActivityCubit>().removeRecent(product.productId);
-                                    },
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.brand.toUpperCase(),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 10,
+                                            color: Theme.of(context).primaryColor,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          product.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: Color(0xFF1A1B2D)
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              '\$${product.basePrice.toStringAsFixed(2)}', 
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 16,
+                                                color: Color(0xFF1A1B2D)
+                                              )
+                                            ),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.star, size: 14, color: Colors.orange),
+                                                const SizedBox(width: 2),
+                                                Text(
+                                                  product.averageRating.toStringAsFixed(1), 
+                                                  style: const TextStyle(
+                                                    fontSize: 12, 
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF1A1B2D)
+                                                  )
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        )
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           );
                         },
+                        childCount: products.length,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                );
-              },
-            ),
-          ),
-
-          // Brand Filter
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _brands.length,
-                itemBuilder: (context, index) {
-                  final brand = _brands[index];
-                  final isSelected = _selectedBrand == brand;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ChoiceChip(
-                      label: Text(brand),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedBrand = brand;
-                        });
-                        _fetchProducts();
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          
-          // Products Grid
-          SliverPadding(
-            padding: const EdgeInsets.all(16.0),
-            sliver: BlocBuilder<ProductCubit, ProductState>(
-              builder: (context, state) {
-                if (state is ProductLoading) {
-                  return const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                } else if (state is ProductError) {
-                  return SliverFillRemaining(
-                    child: Center(child: Text(state.message)),
-                  );
-                } else if (state is ProductsLoaded) {
-                  final products = state.products;
-                  if (products.isEmpty) {
-                    return const SliverFillRemaining(
-                      child: Center(child: Text('No products found')),
                     );
                   }
-                  return SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.7,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final product = products[index];
-                        return GestureDetector(
-                          onTap: () {
-                            context.go('/home/product', extra: product);
-                          },
-                          child: Card(
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Stack(
-                                    children: [
-                                      Container(
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[200],
-                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                        ),
-                                        child: product.images.isEmpty
-                                            ? const Center(child: Icon(Icons.image, size: 50, color: Colors.grey))
-                                            : ClipRRect(
-                                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                                child: Image.network(product.images.first, fit: BoxFit.cover, width: double.infinity),
-                                              ),
-                                      ),
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: BlocBuilder<AuthCubit, AuthState>(
-                                          builder: (context, authState) {
-                                            if (authState is AuthAuthenticated) {
-                                              return CircleAvatar(
-                                                backgroundColor: Colors.white70,
-                                                radius: 16,
-                                                child: IconButton(
-                                                  padding: EdgeInsets.zero,
-                                                  icon: const Icon(Icons.share, size: 16, color: Colors.black87),
-                                                  onPressed: () async {
-                                                    try {
-                                                      await ChatRepository().sendMessage(
-                                                        customerId: authState.user.uid,
-                                                        customerName: authState.user.fullName,
-                                                        customerEmail: authState.user.email,
-                                                        text: 'Hi Admin, I have a question about this product.',
-                                                        senderId: authState.user.uid,
-                                                        senderName: authState.user.fullName,
-                                                        isAdmin: false,
-                                                        productPayload: {
-                                                          'productId': product.productId,
-                                                          'name': product.name,
-                                                          'price': product.basePrice,
-                                                          'imageUrl': product.images.isNotEmpty ? product.images.first : '',
-                                                        },
-                                                      );
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product shared to chat!')));
-                                                      }
-                                                    } catch (e) {
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
-                                                      }
-                                                    }
-                                                  },
-                                                ),
-                                              );
-                                            }
-                                            return const SizedBox.shrink();
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        product.name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text('\$${product.basePrice.toStringAsFixed(2)}', style: TextStyle(color: Theme.of(context).primaryColor)),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.star, size: 14, color: Colors.orange),
-                                          Text('${product.averageRating.toStringAsFixed(1)} (${product.reviewCount})', style: const TextStyle(fontSize: 12)),
-                                        ],
-                                      )
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                      childCount: products.length,
-                    ),
-                  );
-                }
-                return const SliverFillRemaining(child: SizedBox());
-              },
-            ),
-          )
-        ],
+                  return const SliverFillRemaining(child: SizedBox());
+                },
+              ),
+            )
+          ],
+        ),
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
