@@ -114,21 +114,20 @@ class ProfileScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
-                    if (user.role == 'admin')
-                      ListTile(
-                        leading: const Icon(Icons.store, color: Colors.blue),
-                        title: const Text('Store Locations'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const StoreLocationScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    if (user.role == 'admin') const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.store, color: Colors.blue),
+                      title: const Text('Store Locations'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StoreLocationScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

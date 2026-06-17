@@ -126,16 +126,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         child: CircleAvatar(
                           radius: 24,
                           backgroundColor: Theme.of(context).primaryColor,
-                          child: Text(
-                            authState is AuthAuthenticated 
-                                ? authState.user.fullName[0].toUpperCase() 
-                                : 'G',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                          ),
+                          backgroundImage: (authState is AuthAuthenticated && authState.user.avatarUrl.isNotEmpty)
+                              ? NetworkImage(authState.user.avatarUrl)
+                              : null,
+                          child: (authState is AuthAuthenticated && authState.user.avatarUrl.isNotEmpty)
+                              ? null
+                              : Text(
+                                  authState is AuthAuthenticated 
+                                      ? authState.user.fullName[0].toUpperCase() 
+                                      : 'G',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
