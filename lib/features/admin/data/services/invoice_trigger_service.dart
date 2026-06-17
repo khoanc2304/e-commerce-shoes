@@ -27,8 +27,8 @@ class InvoiceTriggerService {
         }
       ],
       "from": {
-        "email": "no-reply@shuesx.com",
-        "name": "Shues X"
+        "email": "no-reply@shoesx.com",
+        "name": "Shoes X"
       },
       "content": [
         {

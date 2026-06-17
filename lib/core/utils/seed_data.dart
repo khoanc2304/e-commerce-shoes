@@ -79,8 +79,8 @@ Future<void> seedFirebaseData(BuildContext context) async {
 
   final List<Map<String, dynamic>> mockCoupons = [
     {
-      "couponId": "SHUESX50",
-      "code": "SHUESX50",
+      "couponId": "SHOESX50",
+      "code": "SHOESX50",
       "discountPercentage": 50.0,
       "isActive": true,
       "expiryDate": Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),

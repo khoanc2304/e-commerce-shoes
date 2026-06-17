@@ -54,7 +54,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Shues X', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Shoes X', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),

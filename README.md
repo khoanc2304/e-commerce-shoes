@@ -1,6 +1,6 @@
-# 👟 Shues X - Flutter E-Commerce App
+# 👟 Shoes X - Flutter E-Commerce App
 
-Shues X is a mobile e-commerce application specializing in sneaker retail, built using **Flutter**. Designed and developed by a 4-member team, the project focuses on delivering an optimized user experience (smooth UI/UX) while adhering to a clean, highly scalable codebase.
+Shoes X is a mobile e-commerce application specializing in sneaker retail, built using **Flutter**. Designed and developed by a 4-member team, the project focuses on delivering an optimized user experience (smooth UI/UX) while adhering to a clean, highly scalable codebase.
 
 ---
 
