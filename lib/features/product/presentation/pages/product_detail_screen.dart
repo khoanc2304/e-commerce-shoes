@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import 'package:go_router/go_router.dart';
+import '../../../chat/data/repositories/chat_repository.dart';
 import '../../data/models/product_model.dart';
 import '../../data/models/review_model.dart';
 import '../cubit/product_cubit.dart';
@@ -12,6 +13,7 @@ import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../../cart/data/models/cart_model.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
+import '../../data/repositories/product_repository.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -27,19 +29,173 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _selectedColor; 
   int _quantity = 1;
 
+  bool _isLoadingReviews = true;
+  List<ReviewModel> _reviews = [];
+  
+  double _inlineRating = 0.0;
+  final TextEditingController _inlineCommentController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
-    // Load reviews when entering
-    context.read<ProductCubit>().loadProductReviews(widget.product);
-    
-    // Add to recently viewed
+    _loadReviews();
     context.read<UserActivityCubit>().addToRecent(widget.product);
   }
 
-  void _showAddReviewModal(BuildContext context) {
-    double rating = 5.0;
-    final commentController = TextEditingController();
+  Future<void> _loadReviews() async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final repo = ProductRepository();
+      final reviews = await repo.getReviews(widget.product.productId);
+      if (mounted) {
+        setState(() {
+          _reviews = reviews;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingReviews = false);
+      }
+    }
+  }
+
+  Future<void> _submitReview(ReviewModel review) async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final repo = ProductRepository();
+      await repo.addReview(widget.product.productId, review);
+      _loadReviews();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingReviews = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to submit review: $e')));
+      }
+    }
+  }
+
+  Future<void> _updateReview(ReviewModel oldReview, ReviewModel newReview) async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final repo = ProductRepository();
+      await repo.updateReview(widget.product.productId, oldReview, newReview);
+      _loadReviews();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingReviews = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update review: $e')));
+      }
+    }
+  }
+
+  Future<void> _deleteReview(ReviewModel review) async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final repo = ProductRepository();
+      await repo.deleteReview(widget.product.productId, review);
+      _loadReviews();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingReviews = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete review: $e')));
+      }
+    }
+  }
+
+  void _showReviewOptions(BuildContext context, ReviewModel review, String uid, String userName) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Edit Comment'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showReviewModal(context, uid, userName, existingReview: review);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Delete Review', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _deleteReview(review);
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  void _showEditRatingModal(BuildContext context, ReviewModel review, String uid, String userName) {
+    double tempRating = review.rating;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Update Rating', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () {
+                            setModalState(() => tempRating = index + 1.0);
+                          },
+                          child: Icon(
+                            index < tempRating ? Icons.star : Icons.star_border,
+                            color: Colors.orange,
+                            size: 48,
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(tempRating == 0 ? 'No rating' : tempRating.toString(), style: const TextStyle(fontSize: 18)),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final updatedReview = ReviewModel(
+                            reviewId: review.reviewId,
+                            userId: uid,
+                            userName: userName,
+                            rating: tempRating,
+                            comment: review.comment,
+                          );
+                          _updateReview(review, updatedReview);
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Save Rating'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        );
+      }
+    );
+  }
+
+  void _showReviewModal(BuildContext context, String uid, String userName, {ReviewModel? existingReview}) {
+    double rating = existingReview?.rating ?? 0.0;
+    final commentController = TextEditingController(text: existingReview?.comment ?? '');
 
     showModalBottomSheet(
       context: context,
@@ -56,7 +212,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Add Review', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(existingReview == null ? 'Add Review' : 'Edit Review', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               StatefulBuilder(
                 builder: (context, setModalState) {
@@ -65,15 +221,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const Text('Rating: '),
                       Slider(
                         value: rating,
-                        min: 1,
+                        min: 0,
                         max: 5,
-                        divisions: 4,
-                        label: rating.toString(),
+                        divisions: 5,
+                        label: rating == 0 ? 'No rating' : rating.toString(),
                         onChanged: (val) {
                           setModalState(() => rating = val);
                         },
                       ),
-                      Text(rating.toString()),
+                      Text(rating == 0 ? 'No rating' : rating.toString()),
                     ],
                   );
                 },
@@ -81,7 +237,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               TextField(
                 controller: commentController,
                 decoration: const InputDecoration(
-                  labelText: 'Comment',
+                  labelText: 'Comment (Optional if rated)',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
@@ -91,17 +247,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    final review = ReviewModel(
-                      reviewId: const Uuid().v4(),
-                      userId: 'currentUserId', // Ideally from Auth
-                      userName: 'Current User', // Ideally from Auth
+                    if (rating == 0 && commentController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a rating or a comment')));
+                      return;
+                    }
+                    final newReview = ReviewModel(
+                      reviewId: existingReview?.reviewId ?? const Uuid().v4(),
+                      userId: uid,
+                      userName: userName,
                       rating: rating,
-                      comment: commentController.text,
+                      comment: commentController.text.trim(),
                     );
-                    context.read<ProductCubit>().addReview(widget.product, review);
+                    
+                    if (existingReview == null) {
+                      _submitReview(newReview);
+                    } else {
+                      _updateReview(existingReview, newReview);
+                    }
                     Navigator.pop(ctx);
                   },
-                  child: const Text('Submit Review'),
+                  child: Text(existingReview == null ? 'Submit Review' : 'Save Changes'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -120,6 +285,43 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       appBar: AppBar(
         title: Text(product.name),
         actions: [
+          BlocBuilder<AuthCubit, AuthState>(
+            builder: (context, authState) {
+              if (authState is AuthAuthenticated) {
+                return IconButton(
+                  icon: const Icon(Icons.share),
+                  tooltip: 'Share to Chat',
+                  onPressed: () async {
+                    try {
+                      await ChatRepository().sendMessage(
+                        customerId: authState.user.uid,
+                        customerName: authState.user.fullName,
+                        customerEmail: authState.user.email,
+                        text: 'Hi Admin, I have a question about this product.',
+                        senderId: authState.user.uid,
+                        senderName: authState.user.fullName,
+                        isAdmin: false,
+                        productPayload: {
+                          'productId': product.productId,
+                          'name': product.name,
+                          'price': product.basePrice,
+                          'imageUrl': product.images.isNotEmpty ? product.images.first : '',
+                        },
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product shared to chat!')));
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
+                      }
+                    }
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           BlocBuilder<UserActivityCubit, UserActivityState>(
             builder: (context, state) {
               final isComparing = state.compareList.any((p) => p.productId == widget.product.productId);
@@ -273,57 +475,150 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ],
 
                   // Reviews Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Reviews', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      TextButton(
-                        onPressed: () => _showAddReviewModal(context),
-                        child: const Text('Add Review'),
-                      )
-                    ],
-                  ),
+                  const Text('Reviews', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 16),
                   
-                  BlocBuilder<ProductCubit, ProductState>(
-                    builder: (context, state) {
-                      if (state is ProductLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (state is ProductReviewsLoaded && state.product.productId == product.productId) {
-                        final reviews = state.reviews;
-                        if (reviews.isEmpty) {
-                          return const Text('No reviews yet. Be the first!');
-                        }
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: reviews.length,
-                          itemBuilder: (context, index) {
-                            final review = reviews[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: CircleAvatar(child: Text(review.userName[0])),
-                                title: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(review.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.star, size: 14, color: Colors.orange),
-                                        Text(review.rating.toString()),
-                                      ],
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, authState) {
+                      if (authState is AuthAuthenticated) {
+                        // TODO: Future feature - Check if user has purchased this product
+                        // final hasPurchased = checkPurchase(authState.user.uid, product.productId);
+                        // if (!hasPurchased) return const SizedBox.shrink();
+                        
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text('Rating: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ...List.generate(5, (index) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() => _inlineRating = index + 1.0);
+                                    },
+                                    child: Icon(
+                                      index < _inlineRating ? Icons.star : Icons.star_border,
+                                      color: Colors.orange,
+                                      size: 28,
                                     ),
-                                  ],
+                                  );
+                                }),
+                                if (_inlineRating == 0.0)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 8.0),
+                                    child: Text('(No rating)', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                  )
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _inlineCommentController,
+                                    decoration: InputDecoration(
+                                      hintText: 'Write your review...',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    ),
+                                    maxLines: null,
+                                  ),
                                 ),
-                                subtitle: Text(review.comment),
-                              ),
-                            );
-                          },
+                                const SizedBox(width: 8),
+                                CircleAvatar(
+                                  backgroundColor: Theme.of(context).primaryColor,
+                                  radius: 24,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.send, color: Colors.white),
+                                    onPressed: () {
+                                      if (_inlineRating == 0 && _inlineCommentController.text.trim().isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a rating or a comment')));
+                                        return;
+                                      }
+                                      final review = ReviewModel(
+                                        reviewId: const Uuid().v4(),
+                                        userId: authState.user.uid,
+                                        userName: authState.user.fullName,
+                                        rating: _inlineRating,
+                                        comment: _inlineCommentController.text.trim(),
+                                      );
+                                      _submitReview(review);
+                                      setState(() {
+                                        _inlineRating = 0.0;
+                                        _inlineCommentController.clear();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                          ],
                         );
                       }
-                      return const SizedBox();
+                      return const SizedBox.shrink();
                     },
                   ),
+                  
+                  _isLoadingReviews
+                      ? const Center(child: CircularProgressIndicator())
+                      : _reviews.isEmpty
+                          ? const Text('No reviews yet. Be the first!')
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _reviews.length,
+                              itemBuilder: (context, index) {
+                                final review = _reviews[index];
+                                return BlocBuilder<AuthCubit, AuthState>(
+                                  builder: (context, authState) {
+                                    final isMyReview = authState is AuthAuthenticated && authState.user.uid == review.userId;
+                                    return GestureDetector(
+                                      onLongPress: isMyReview ? () => _showReviewOptions(context, review, authState.user.uid, authState.user.fullName) : null,
+                                      child: Card(
+                                        margin: const EdgeInsets.only(bottom: 8),
+                                        child: ListTile(
+                                          leading: CircleAvatar(child: Text(review.userName[0])),
+                                          title: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(review.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                              GestureDetector(
+                                                onTap: isMyReview ? () => _showEditRatingModal(context, review, authState.user.uid, authState.user.fullName) : null,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: isMyReview ? BoxDecoration(
+                                                    color: Colors.grey[200],
+                                                    borderRadius: BorderRadius.circular(12)
+                                                  ) : null,
+                                                  child: Row(
+                                                    children: [
+                                                      if (review.rating > 0) ...[
+                                                        const Icon(Icons.star, size: 14, color: Colors.orange),
+                                                        const SizedBox(width: 4),
+                                                        Text(review.rating.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                      ] else
+                                                        const Text('No rating', style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          subtitle: review.comment.isNotEmpty ? Padding(
+                                            padding: const EdgeInsets.only(top: 8.0),
+                                            child: Text(review.comment),
+                                          ) : null,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                );
+                              },
+                            ),
                 ],
               ),
             ),

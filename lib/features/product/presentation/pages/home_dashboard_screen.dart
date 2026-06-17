@@ -7,8 +7,7 @@ import '../cubit/user_activity_cubit.dart';
 import '../cubit/user_activity_state.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
-import '../../../cart/data/models/cart_model.dart';
-import '../../../cart/presentation/cubit/cart_cubit.dart';
+import '../../../chat/data/repositories/chat_repository.dart';
 import 'product_detail_screen.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,15 +23,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   String _selectedBrand = 'All';
 
   final List<String> _banners = [
-    'https://i.ibb.co/banner1.jpg', // Placeholder
-    'https://i.ibb.co/banner2.jpg',
-    'https://i.ibb.co/banner3.jpg',
+    'https://imgs.search.brave.com/ot_sX4oy2xaQQjAZXYyb8NxAsk_K55DfyOl7McCq8tY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/cHNkLWNhby1jYXAv/Ym8tc3V1LXRhcC1n/aWF5LW1vaS1tYXUt/YmFubmVyLXRyYW5n/LWJpYS1mYWNlYm9v/ay1kb2MtcXV5ZW4t/dHJlbi1tYW5nLXhh/LWhvaV80ODQ2Mjct/MjAwLmpwZz9zZW10/PWFpc19oeWJyaWQm/dz03NDAmcT04MA',
+    'https://imgs.search.brave.com/sjaFjQgA1Nbbhmad44cL6pmVGWJeaun-gVboDGBkyLg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/cHNkLWNhby1jYXAv/bWF1LWJhbm5lci13/ZWItdHJlbi1mYWNl/Ym9vay12YS1iYWkt/ZGFuZy10cmVuLWlu/c3RhZ3JhbS10cmVu/LW1hbmcteGEtaG9p/LXZlLWdpYXktdGhl/LXRoYW8tZ2lhbS1n/aWFfNzAwNTUtOTU4/LmpwZz9zZW10PWFp/c19oeWJyaWQmdz03/NDAmcT04MA',
+    'https://imgs.search.brave.com/Khqiez6JsjqfZ5D7mvrXGvqqVu9qGQs0dq2gKqK9n5I/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/cHNkLWNhby1jYXAv/bWF1LWJhbm5lci13/ZWItdHJlbi1mYWNl/Ym9vay12YS1iYWkt/ZGFuZy10cmVuLWlu/c3RhZ3JhbS10cmVu/LW1hbmcteGEtaG9p/LXZlLWdpYXktdGhl/LXRoYW8tZ2lhbS1n/aWFfNzAwNTUtMTQw/Ni5qcGc_c2VtdD1h/aXNfaHlicmlkJnc9/NzQwJnE9ODA',
+    'https://imgs.search.brave.com/A4mQOJMCgidPufH1Tu4GJS-BdLF0dvd7w8BBSI3TLZI/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzA1LzMy/LzcwLzA1MzI3MDIz/MzliOTM2OGYxOTk3/Mzk2N2MwNGIxN2I5/LmpwZw',
   ];
 
   @override
   void initState() {
     super.initState();
     _fetchProducts();
+    
+    // Load recently viewed for the current user
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<UserActivityCubit>().loadRecentlyViewed(authState.user.uid);
+    }
   }
 
   void _fetchProducts() {
@@ -56,47 +62,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               context.push('/search');
             },
           ),
-          if (authState is AuthAuthenticated)
-            StreamBuilder<CartModel?>(
-              stream: context.read<CartCubit>().getCartStream(authState.user.uid),
-              builder: (context, snapshot) {
-                final int itemCount = snapshot.data?.items.length ?? 0;
-                return IconButton(
-                  icon: Badge(
-                    label: Text(itemCount.toString()),
-                    isLabelVisible: itemCount > 0,
-                    child: const Icon(Icons.shopping_cart),
-                  ),
-                  tooltip: 'Cart',
-                  onPressed: () {
-                    context.push('/cart');
-                  },
-                );
-              },
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.shopping_cart),
-              tooltip: 'Cart',
-              onPressed: () {
-                context.push('/cart');
-              },
-            ),
-          if (authState is AuthAuthenticated)
-            IconButton(
-              icon: const Icon(Icons.receipt_long),
-              tooltip: 'My Orders',
-              onPressed: () {
-                context.push('/orders');
-              },
-            ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            tooltip: 'Profile',
-            onPressed: () {
-              context.push('/profile');
-            },
-          ),
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.admin_panel_settings, color: Colors.redAccent),
@@ -117,20 +82,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 options: CarouselOptions(
                   height: 150.0,
                   autoPlay: true,
+                  autoPlayInterval: const Duration(seconds: 2),
                   enlargeCenterPage: true,
                   viewportFraction: 0.85,
                 ),
                 items: _banners.map((url) {
                   return Builder(
                     builder: (BuildContext context) {
-                      return Container(
-                        width: MediaQuery.of(context).size.width,
-                        margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(12),
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          url,
+                          fit: BoxFit.cover,
+                          width: MediaQuery.of(context).size.width,
                         ),
-                        child: const Center(child: Text('Banner Ad', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
                       );
                     },
                   );
@@ -176,12 +141,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ProductDetailScreen(product: product),
-                                      ),
-                                    ).then((_) => _fetchProducts());
+                                    context.go('/home/product', extra: product);
                                   },
                                   child: Card(
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -296,12 +256,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         final product = products[index];
                         return GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ProductDetailScreen(product: product),
-                              ),
-                            ).then((_) => _fetchProducts());
+                            context.go('/home/product', extra: product);
                           },
                           child: Card(
                             elevation: 2,
@@ -310,17 +265,67 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                    ),
-                                    child: product.images.isEmpty
-                                        ? const Center(child: Icon(Icons.image, size: 50, color: Colors.grey))
-                                        : ClipRRect(
-                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                            child: Image.network(product.images.first, fit: BoxFit.cover, width: double.infinity),
-                                          ),
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                        ),
+                                        child: product.images.isEmpty
+                                            ? const Center(child: Icon(Icons.image, size: 50, color: Colors.grey))
+                                            : ClipRRect(
+                                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                                child: Image.network(product.images.first, fit: BoxFit.cover, width: double.infinity),
+                                              ),
+                                      ),
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: BlocBuilder<AuthCubit, AuthState>(
+                                          builder: (context, authState) {
+                                            if (authState is AuthAuthenticated) {
+                                              return CircleAvatar(
+                                                backgroundColor: Colors.white70,
+                                                radius: 16,
+                                                child: IconButton(
+                                                  padding: EdgeInsets.zero,
+                                                  icon: const Icon(Icons.share, size: 16, color: Colors.black87),
+                                                  onPressed: () async {
+                                                    try {
+                                                      await ChatRepository().sendMessage(
+                                                        customerId: authState.user.uid,
+                                                        customerName: authState.user.fullName,
+                                                        customerEmail: authState.user.email,
+                                                        text: 'Hi Admin, I have a question about this product.',
+                                                        senderId: authState.user.uid,
+                                                        senderName: authState.user.fullName,
+                                                        isAdmin: false,
+                                                        productPayload: {
+                                                          'productId': product.productId,
+                                                          'name': product.name,
+                                                          'price': product.basePrice,
+                                                          'imageUrl': product.images.isNotEmpty ? product.images.first : '',
+                                                        },
+                                                      );
+                                                      if (context.mounted) {
+                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product shared to chat!')));
+                                                      }
+                                                    } catch (e) {
+                                                      if (context.mounted) {
+                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
+                                                      }
+                                                    }
+                                                  },
+                                                ),
+                                              );
+                                            }
+                                            return const SizedBox.shrink();
+                                          },
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 Padding(
@@ -361,30 +366,39 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           )
         ],
       ),
-      floatingActionButton: BlocBuilder<UserActivityCubit, UserActivityState>(
-        builder: (context, state) {
-          if (state.compareList.isEmpty) return const SizedBox.shrink();
-          
-          return FloatingActionButton(
-            onPressed: () {
-              if (state.compareList.length == 2) {
-                context.push('/compare', extra: {
-                  'product1': state.compareList[0],
-                  'product2': state.compareList[1],
-                });
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select one more product to compare.')),
-                );
-              }
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          BlocBuilder<UserActivityCubit, UserActivityState>(
+            builder: (context, state) {
+              if (state.compareList.isEmpty) return const SizedBox.shrink();
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: FloatingActionButton(
+                  heroTag: 'compare_fab',
+                  onPressed: () {
+                    if (state.compareList.length == 2) {
+                      context.push('/compare', extra: {
+                        'product1': state.compareList[0],
+                        'product2': state.compareList[1],
+                      });
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please select one more product to compare.')),
+                      );
+                    }
+                  },
+                  backgroundColor: state.compareList.length == 2 ? Theme.of(context).primaryColor : Colors.orange,
+                  child: Badge(
+                    label: Text(state.compareList.length.toString()),
+                    child: const Icon(Icons.compare_arrows),
+                  ),
+                ),
+              );
             },
-            backgroundColor: state.compareList.length == 2 ? Theme.of(context).primaryColor : Colors.orange,
-            child: Badge(
-              label: Text(state.compareList.length.toString()),
-              child: const Icon(Icons.compare_arrows),
-            ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

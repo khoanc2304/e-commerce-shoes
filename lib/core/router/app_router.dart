@@ -13,7 +13,12 @@ import '../../features/admin/presentation/pages/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/pages/admin_product_list_screen.dart';
 import '../../features/admin/presentation/pages/admin_product_management.dart';
 import '../../features/admin/presentation/pages/admin_orders_screen.dart';
+import '../../features/admin/presentation/pages/admin_chat_hub_screen.dart';
+import '../../features/admin/presentation/pages/admin_chat_screen.dart';
+import '../../features/chat/presentation/pages/customer_chat_screen.dart';
+import '../../features/main_layout/presentation/pages/main_layout_screen.dart';
 import '../../features/product/data/models/product_model.dart';
+import '../../features/product/presentation/pages/product_detail_screen.dart';
 import '../../features/product/presentation/pages/search_filter_screen.dart';
 import '../../features/product/presentation/pages/product_comparison_screen.dart';
 
@@ -30,29 +35,74 @@ class AppRouter {
         path: '/signup',
         builder: (BuildContext context, GoRouterState state) => const SignUpScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (BuildContext context, GoRouterState state) => const HomeDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/cart',
-        builder: (BuildContext context, GoRouterState state) {
-          final authState = context.read<AuthCubit>().state;
-          final userId = authState is AuthAuthenticated ? authState.user.uid : 'guest';
-          return CartScreen(userId: userId);
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainLayoutScreen(navigationShell: navigationShell);
         },
-      ),
-      GoRoute(
-        path: '/profile',
-        builder: (BuildContext context, GoRouterState state) => const ProfileScreen(),
-      ),
-      GoRoute(
-        path: '/orders',
-        builder: (BuildContext context, GoRouterState state) {
-          final authState = context.read<AuthCubit>().state;
-          if (authState is! AuthAuthenticated) return const Scaffold(body: Center(child: Text('Login required')));
-          return const UserOrdersScreen();
-        },
+        branches: [
+          StatefulShellBranch(
+            initialLocation: '/home',
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (context, state) => const HomeDashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'product',
+                    builder: (context, state) {
+                      final product = state.extra as ProductModel;
+                      return ProductDetailScreen(product: product);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            initialLocation: '/cart',
+            routes: [
+              GoRoute(
+                path: '/cart',
+                builder: (context, state) => const CartScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            initialLocation: '/orders',
+            routes: [
+              GoRoute(
+                path: '/orders',
+                builder: (context, state) {
+                  final authState = context.read<AuthCubit>().state;
+                  if (authState is! AuthAuthenticated) return const Scaffold(body: Center(child: Text('Login required')));
+                  return const UserOrdersScreen();
+                },
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            initialLocation: '/chat',
+            routes: [
+              GoRoute(
+                path: '/chat',
+                builder: (context, state) {
+                  final authState = context.read<AuthCubit>().state;
+                  final isAdmin = authState is AuthAuthenticated && authState.user.role == 'admin';
+                  return isAdmin ? const AdminChatHubScreen() : const CustomerChatScreen();
+                },
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            initialLocation: '/profile',
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       // Admin Routes
       GoRoute(
@@ -66,6 +116,15 @@ class AppRouter {
       GoRoute(
         path: '/admin/orders',
         builder: (BuildContext context, GoRouterState state) => const AdminOrdersScreen(),
+      ),
+      // Admin Chat Detail (AdminChatHubScreen is now at /chat)
+      GoRoute(
+        path: '/admin/chats/:id',
+        builder: (BuildContext context, GoRouterState state) {
+          final customerId = state.pathParameters['id']!;
+          final customerName = state.extra as String? ?? 'Customer';
+          return AdminChatScreen(customerId: customerId, customerName: customerName);
+        },
       ),
       GoRoute(
         path: '/admin/products/add_edit',

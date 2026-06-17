@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import '../../data/models/chat_model.dart';
+import '../../data/models/chat_message_model.dart';
 
 abstract class ChatState extends Equatable {
   const ChatState();
@@ -9,9 +11,7 @@ abstract class ChatState extends Equatable {
 
 class ChatInitial extends ChatState {}
 
-class ChatSending extends ChatState {}
-
-class ChatMessageSent extends ChatState {}
+class ChatLoading extends ChatState {}
 
 class ChatError extends ChatState {
   final String message;
@@ -20,4 +20,24 @@ class ChatError extends ChatState {
 
   @override
   List<Object?> get props => [message];
+}
+
+// For Admin Chat Hub
+class AdminChatsLoaded extends ChatState {
+  final List<ChatModel> chats;
+
+  const AdminChatsLoaded(this.chats);
+
+  @override
+  List<Object?> get props => [chats];
+}
+
+// For Customer/Admin Chat Screen (Messages)
+class ChatMessagesLoaded extends ChatState {
+  final List<ChatMessageModel> messages;
+
+  const ChatMessagesLoaded(this.messages);
+
+  @override
+  List<Object?> get props => [messages];
 }

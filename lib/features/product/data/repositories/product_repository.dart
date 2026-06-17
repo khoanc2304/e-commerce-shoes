@@ -8,6 +8,18 @@ class ProductRepository {
   ProductRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
+  Future<ProductModel?> getProductById(String productId) async {
+    try {
+      final doc = await _firestore.collection('products').doc(productId).get();
+      if (doc.exists) {
+        return ProductModel.fromMap(doc.data()!, doc.id);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get product: $e');
+    }
+  }
+
   Future<List<ProductModel>> getProducts({
     String? brand,
     int? size,
@@ -175,22 +187,95 @@ class ProductRepository {
         final double currentAverage = (data['averageRating'] ?? 0.0).toDouble();
         final int currentReviewCount = data['reviewCount'] ?? 0;
 
-        // Calculate new average rating
-        final int newReviewCount = currentReviewCount + 1;
-        final double newAverageRating =
-            ((currentAverage * currentReviewCount) + review.rating) / newReviewCount;
-
         // Set the review document
         transaction.set(reviewRef, review.toMap());
 
-        // Update the product document
-        transaction.update(productRef, {
-          'averageRating': newAverageRating,
-          'reviewCount': newReviewCount,
-        });
+        // Only affect average rating if the review actually has a rating > 0
+        if (review.rating > 0) {
+          final int newReviewCount = currentReviewCount + 1;
+          final double newAverageRating =
+              ((currentAverage * currentReviewCount) + review.rating) / newReviewCount;
+
+          transaction.update(productRef, {
+            'averageRating': newAverageRating,
+            'reviewCount': newReviewCount,
+          });
+        }
       });
     } catch (e) {
       throw Exception('Failed to add review: $e');
+    }
+  }
+
+  Future<void> updateReview(String productId, ReviewModel oldReview, ReviewModel newReview) async {
+    final productRef = _firestore.collection('products').doc(productId);
+    final reviewRef = productRef.collection('reviews').doc(newReview.reviewId);
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final productDoc = await transaction.get(productRef);
+        if (!productDoc.exists) throw Exception("Product does not exist!");
+
+        final data = productDoc.data()!;
+        double currentAverage = (data['averageRating'] ?? 0.0).toDouble();
+        int currentReviewCount = data['reviewCount'] ?? 0;
+
+        double totalRating = currentAverage * currentReviewCount;
+        int ratedCount = currentReviewCount;
+
+        // Remove old rating contribution
+        if (oldReview.rating > 0) {
+          totalRating -= oldReview.rating;
+          ratedCount -= 1;
+        }
+        
+        // Add new rating contribution
+        if (newReview.rating > 0) {
+          totalRating += newReview.rating;
+          ratedCount += 1;
+        }
+
+        double newAverage = ratedCount > 0 ? totalRating / ratedCount : 0.0;
+
+        transaction.update(productRef, {
+          'averageRating': newAverage,
+          'reviewCount': ratedCount,
+        });
+        transaction.update(reviewRef, newReview.toMap());
+      });
+    } catch (e) {
+      throw Exception('Failed to update review: $e');
+    }
+  }
+
+  Future<void> deleteReview(String productId, ReviewModel review) async {
+    final productRef = _firestore.collection('products').doc(productId);
+    final reviewRef = productRef.collection('reviews').doc(review.reviewId);
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final productDoc = await transaction.get(productRef);
+        if (!productDoc.exists) return;
+
+        final data = productDoc.data()!;
+        double currentAverage = (data['averageRating'] ?? 0.0).toDouble();
+        int currentReviewCount = data['reviewCount'] ?? 0;
+
+        if (review.rating > 0) {
+          int newReviewCount = currentReviewCount - 1;
+          double newAverage = 0.0;
+          if (newReviewCount > 0) {
+            newAverage = ((currentAverage * currentReviewCount) - review.rating) / newReviewCount;
+          }
+          transaction.update(productRef, {
+            'averageRating': newAverage,
+            'reviewCount': newReviewCount,
+          });
+        }
+        transaction.delete(reviewRef);
+      });
+    } catch (e) {
+      throw Exception('Failed to delete review: $e');
     }
   }
 }

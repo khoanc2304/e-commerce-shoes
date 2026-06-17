@@ -6,10 +6,11 @@ import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
 import 'checkout_screen.dart';
 
-class CartScreen extends StatefulWidget {
-  final String userId;
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../auth/presentation/cubit/auth_state.dart';
 
-  const CartScreen({Key? key, required this.userId}) : super(key: key);
+class CartScreen extends StatefulWidget {
+  const CartScreen({Key? key}) : super(key: key);
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -43,7 +44,9 @@ class _CartScreenState extends State<CartScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<CartCubit>().removeItem(widget.userId, item.productId, item.selectedSize, item.selectedColor);
+              final authState = context.read<AuthCubit>().state;
+              final currentUserId = authState is AuthAuthenticated ? authState.user.uid : 'guest';
+              context.read<CartCubit>().removeItem(currentUserId, item.productId, item.selectedSize, item.selectedColor);
               setState(() {
                 _dismissedItemKeys.add(_getItemKey(item));
                 _selectedItemKeys.remove(_getItemKey(item));
@@ -58,7 +61,9 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cartStream = context.read<CartCubit>().getCartStream(widget.userId);
+    final authState = context.watch<AuthCubit>().state;
+    final String currentUserId = authState is AuthAuthenticated ? authState.user.uid : 'guest';
+    final cartStream = context.read<CartCubit>().getCartStream(currentUserId);
 
     return StreamBuilder<CartModel?>(
       stream: cartStream,
@@ -150,7 +155,9 @@ class _CartScreenState extends State<CartScreen> {
                               _dismissedItemKeys.add(itemKey);
                               _selectedItemKeys.remove(itemKey);
                             });
-                            context.read<CartCubit>().removeItem(widget.userId, item.productId, item.selectedSize, item.selectedColor);
+                            final currentAuthState = context.read<AuthCubit>().state;
+                            final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                            context.read<CartCubit>().removeItem(currentUid, item.productId, item.selectedSize, item.selectedColor);
                           },
                           child: StreamBuilder<DocumentSnapshot>(
                             stream: FirebaseFirestore.instance.collection('products').doc(item.productId).snapshots(),
@@ -207,7 +214,9 @@ class _CartScreenState extends State<CartScreen> {
                                             icon: const Icon(Icons.remove_circle_outline),
                                             onPressed: () {
                                               if (item.quantity > 1) {
-                                                context.read<CartCubit>().updateQuantity(widget.userId, item.productId, item.selectedSize, item.selectedColor, item.quantity - 1);
+                                                final currentAuthState = context.read<AuthCubit>().state;
+                                                final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                                                context.read<CartCubit>().updateQuantity(currentUid, item.productId, item.selectedSize, item.selectedColor, item.quantity - 1);
                                               } else {
                                                 _showDeleteConfirmDialog(context, item);
                                               }
@@ -217,7 +226,9 @@ class _CartScreenState extends State<CartScreen> {
                                           IconButton(
                                             icon: const Icon(Icons.add_circle_outline),
                                             onPressed: () {
-                                              context.read<CartCubit>().updateQuantity(widget.userId, item.productId, item.selectedSize, item.selectedColor, item.quantity + 1);
+                                              final currentAuthState = context.read<AuthCubit>().state;
+                                              final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                                              context.read<CartCubit>().updateQuantity(currentUid, item.productId, item.selectedSize, item.selectedColor, item.quantity + 1);
                                             },
                                           ),
                                         ],
@@ -314,14 +325,18 @@ class _CartScreenState extends State<CartScreen> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => CheckoutScreen(
-                                            userId: widget.userId,
-                                            cartItems: selectedItemsList,
+                                          builder: (_) {
+                                            final currentAuthState = context.read<AuthCubit>().state;
+                                            final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                                            return CheckoutScreen(
+                                              userId: currentUid,
+                                              cartItems: selectedItemsList,
                                             subTotal: subTotal,
                                             discountAmount: discount,
                                             totalPrice: total,
-                                            voucherApplied: appliedCoupon?.code,
-                                          ),
+                                              voucherApplied: appliedCoupon?.code,
+                                            );
+                                          },
                                         ),
                                       );
                                     },
