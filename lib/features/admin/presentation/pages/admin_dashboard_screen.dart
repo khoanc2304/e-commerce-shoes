@@ -166,6 +166,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             },
                           ),
                         ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.store),
+                            label: const Text('Store Maps'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () {
+                              context.push('/admin/stores');
+                            },
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),

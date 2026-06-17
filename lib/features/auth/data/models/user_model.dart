@@ -6,6 +6,12 @@ class ShippingAddress {
   final String phoneNumber;
   final String addressLine;
   final String city;
+  final String district;
+  final String ward;
+  final String label;
+  final bool isDefault;
+  final double latitude;
+  final double longitude;
 
   ShippingAddress({
     required this.id,
@@ -13,6 +19,12 @@ class ShippingAddress {
     required this.phoneNumber,
     required this.addressLine,
     required this.city,
+    this.district = '',
+    this.ward = '',
+    this.label = 'Home',
+    this.isDefault = false,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +34,12 @@ class ShippingAddress {
       'phoneNumber': phoneNumber,
       'addressLine': addressLine,
       'city': city,
+      'district': district,
+      'ward': ward,
+      'label': label,
+      'isDefault': isDefault,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -32,6 +50,12 @@ class ShippingAddress {
       phoneNumber: map['phoneNumber'] ?? '',
       addressLine: map['addressLine'] ?? '',
       city: map['city'] ?? '',
+      district: map['district'] ?? '',
+      ward: map['ward'] ?? '',
+      label: map['label'] ?? 'Home',
+      isDefault: map['isDefault'] ?? false,
+      latitude: map['latitude']?.toDouble() ?? 0.0,
+      longitude: map['longitude']?.toDouble() ?? 0.0,
     );
   }
 }
