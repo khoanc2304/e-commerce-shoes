@@ -46,7 +46,7 @@ void main() async {
   final productRepository = ProductRepository();
   final chatRepository = ChatRepository();
 
-  runApp(ShuesXApp(
+  runApp(ShoesXApp(
     authRepository: authRepository,
     imgBBService: imgBBService,
     cartRepository: cartRepository,
@@ -58,7 +58,7 @@ void main() async {
   ));
 }
 
-class ShuesXApp extends StatelessWidget {
+class ShoesXApp extends StatelessWidget {
   final AuthRepository authRepository;
   final ImgBBService imgBBService;
   final CartRepository cartRepository;
@@ -68,7 +68,7 @@ class ShuesXApp extends StatelessWidget {
   final ProductRepository productRepository;
   final ChatRepository chatRepository;
 
-  const ShuesXApp({
+  const ShoesXApp({
     super.key,
     required this.authRepository,
     required this.imgBBService,
@@ -127,7 +127,7 @@ class ShuesXApp extends StatelessWidget {
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) {
           return MaterialApp.router(
-            title: 'Shues X',
+            title: 'Shoes X',
             debugShowCheckedModeBanner: false,
             themeMode: themeMode,
             theme: AppTheme.lightTheme,
