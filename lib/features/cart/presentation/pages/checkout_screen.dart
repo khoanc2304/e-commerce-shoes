@@ -315,7 +315,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Checkout')),
+          appBar: AppBar(
+            title: Text(
+              'Checkout',
+              style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+            ),
+          ),
           body: BlocConsumer<CartCubit, CartState>(
             listener: (context, state) {
               if (state is CartCheckoutSuccess) {
@@ -334,80 +339,328 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               return Stack(
                 children: [
                   SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    physics: const BouncingScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Shipping Details
-                        const Text('Shipping Address', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4.0, top: 8.0, bottom: 4.0),
+                          child: Text(
+                            'Shipping Address', 
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground),
+                          ),
+                        ),
                         Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: ListTile(
-                            title: Text(_selectedAddress?.receiverName ?? 'No Address Selected', style: TextStyle(color: _selectedAddress == null ? Colors.red : null)),
-                            subtitle: _selectedAddress != null 
-                              ? Text('${_selectedAddress!.phoneNumber}\n${_selectedAddress!.addressLine}, ${_selectedAddress!.city}')
-                              : const Text('Tap change to add an address'),
-                            isThreeLine: _selectedAddress != null,
-                            trailing: TextButton(
-                              onPressed: () => _showAddressSelectionModal(context, user),
-                              child: const Text('Change'),
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.local_shipping_outlined, color: Theme.of(context).primaryColor, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _selectedAddress?.receiverName ?? 'No Address Selected',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: _selectedAddress == null 
+                                              ? Colors.red 
+                                              : Theme.of(context).colorScheme.onBackground,
+                                        ),
+                                      ),
+                                      if (_selectedAddress != null) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _selectedAddress!.phoneNumber,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${_selectedAddress!.addressLine}, ${_selectedAddress!.city}',
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ] else ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Tap Change to add or select an address',
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4),
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => _showAddressSelectionModal(context, user),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    foregroundColor: Theme.of(context).primaryColor,
+                                  ),
+                                  child: const Text('Change', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
 
                         // Order Summary
-                        const Text('Order Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: widget.cartItems.length,
-                          itemBuilder: (context, index) {
-                            final item = widget.cartItems[index];
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Container(
-                                width: 50,
-                                height: 50,
-                                color: Colors.grey[200],
-                                child: item.image.isEmpty ? const Icon(Icons.image) : Image.network(item.image, fit: BoxFit.cover),
-                              ),
-                              title: Text(item.productName, maxLines: 1, overflow: TextOverflow.ellipsis),
-                              subtitle: Text('x${item.quantity}  |  Size: ${item.selectedSize}'),
-                              trailing: Text('\$${(item.price * item.quantity).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            );
-                          },
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4.0, bottom: 4.0),
+                          child: Text(
+                            'Order Summary', 
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground),
+                          ),
                         ),
-                        const Divider(),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Subtotal'), Text('\$${widget.subTotal.toStringAsFixed(2)}')]),
-                        if (widget.discountAmount > 0)
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Discount (${widget.voucherApplied})', style: const TextStyle(color: Colors.green)), Text('-\$${widget.discountAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green))]),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Shipping Fee'), const Text('Free')]), // Mocked free shipping
-                        const Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text('\$${widget.totalPrice.toStringAsFixed(2)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
-                          ],
+                        Card(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: widget.cartItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item = widget.cartItems[index];
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 50,
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).brightness == Brightness.light
+                                                  ? const Color(0xFFF5F5F9)
+                                                  : const Color(0xFF1C1C2A),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: item.image.isEmpty
+                                                  ? const Icon(Icons.image, size: 20)
+                                                  : Image.network(item.image, fit: BoxFit.contain),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item.productName,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Theme.of(context).colorScheme.onBackground,
+                                                    fontSize: 14,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  'x${item.quantity}  •  Size: ${item.selectedSize}  •  ${item.selectedColor}',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '\$${(item.price * item.quantity).toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).colorScheme.onBackground,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Divider(),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Subtotal', style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6))),
+                                    Text('\$${widget.subTotal.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
+                                  ],
+                                ),
+                                if (widget.discountAmount > 0) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Discount (${widget.voucherApplied})', style: const TextStyle(color: Colors.green)),
+                                      Text('-\$${widget.discountAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ],
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Shipping Fee', style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6))),
+                                    const Text('Free', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.0),
+                                  child: Divider(),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onBackground)),
+                                    Text(
+                                      '\$${widget.totalPrice.toStringAsFixed(2)}',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
                         // Payment Method
-                        const Text('Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        ..._paymentMethods.map((method) => RadioListTile<String>(
-                              title: Text(method),
-                              value: method,
-                              groupValue: _selectedPaymentMethod,
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedPaymentMethod = val!;
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            )),
-                        const SizedBox(height: 80), // Padding for bottom button
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4.0, bottom: 4.0),
+                          child: Text(
+                            'Payment Method', 
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground),
+                          ),
+                        ),
+                        Card(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: _paymentMethods.map((method) {
+                                final isSelected = _selectedPaymentMethod == method;
+                                IconData methodIcon = Icons.money;
+                                if (method == 'Credit Card') {
+                                  methodIcon = Icons.credit_card;
+                                } else if (method == 'VNPay') {
+                                  methodIcon = Icons.account_balance_wallet_outlined;
+                                }
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedPaymentMethod = method;
+                                    });
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    margin: const EdgeInsets.symmetric(vertical: 6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).brightness == Brightness.light
+                                          ? (isSelected ? Theme.of(context).primaryColor.withOpacity(0.03) : const Color(0xFFF8F9FB))
+                                          : (isSelected ? Theme.of(context).primaryColor.withOpacity(0.05) : const Color(0xFF1C1C2A)),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isSelected 
+                                            ? Theme.of(context).primaryColor 
+                                            : Theme.of(context).dividerColor.withOpacity(0.1),
+                                        width: isSelected ? 1.8 : 1,
+                                      ),
+                                      boxShadow: isSelected
+                                          ? [
+                                              BoxShadow(
+                                                color: Theme.of(context).primaryColor.withOpacity(0.15),
+                                                blurRadius: 10,
+                                                spreadRadius: 1,
+                                              )
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          methodIcon, 
+                                          color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Text(
+                                            method,
+                                            style: TextStyle(
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                              fontSize: 15,
+                                              color: Theme.of(context).colorScheme.onBackground,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 20,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.5),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: isSelected
+                                              ? Center(
+                                                  child: Container(
+                                                    width: 10,
+                                                    height: 10,
+                                                    decoration: BoxDecoration(
+                                                      color: Theme.of(context).primaryColor,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                )
+                                              : null,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
@@ -422,17 +675,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               );
             },
           ),
-          bottomSheet: Container(
-            padding: const EdgeInsets.all(16),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, -5))],
-            ),
-            child: ElevatedButton(
-              onPressed: () => _placeOrder(user),
-              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: const Text('Place Order', style: TextStyle(fontSize: 18)),
+          bottomNavigationBar: SafeArea(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.white
+                    : const Color(0xFF161622),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 24,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withOpacity(0.08),
+                  width: 1,
+                ),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () => _placeOrder(user),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Place Order', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              ),
             ),
           ),
         );

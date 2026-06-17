@@ -80,284 +80,456 @@ class _CartScreenState extends State<CartScreen> {
         final items = (cart?.items ?? []).where((item) => !_dismissedItemKeys.contains(_getItemKey(item))).toList();
 
         return Scaffold(
-          appBar: AppBar(title: Text(items.isEmpty ? 'My Cart' : 'My Cart (${items.length})')),
+          appBar: AppBar(
+            title: Text(
+              items.isEmpty ? 'My Cart' : 'My Cart (${items.length})',
+              style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+            ),
+          ),
           body: items.isEmpty 
-            ? const Center(child: Text('Your cart is empty.'))
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.shopping_cart_outlined, size: 64, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Your cart is empty.',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5)),
+                    ),
+                  ],
+                ),
+              )
             : Builder(
                 builder: (context) {
                   final subTotal = _calculateSubtotal(items);
-          final selectedItemsList = items.where((i) => _selectedItemKeys.contains(_getItemKey(i))).toList();
-          
-          return BlocConsumer<CartCubit, CartState>(
-            listener: (context, state) {
-              if (state is CartError) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.red));
-              } else if (state is CartOperationSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
-              } else if (state is CartCouponApplied) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Coupon ${state.coupon.code} applied!'), backgroundColor: Colors.green));
-              }
-            },
-            builder: (context, state) {
-              final appliedCoupon = context.read<CartCubit>().appliedCoupon;
-              double discount = 0.0;
-              if (appliedCoupon != null) {
-                if (appliedCoupon.discountType == 'percentage') {
-                  discount = subTotal * (appliedCoupon.discountValue / 100);
-                } else {
-                  discount = appliedCoupon.discountValue;
-                }
-              }
-              final total = (subTotal - discount) > 0 ? (subTotal - discount) : 0.0;
+                  final selectedItemsList = items.where((i) => _selectedItemKeys.contains(_getItemKey(i))).toList();
+                  
+                  return BlocConsumer<CartCubit, CartState>(
+                    listener: (context, state) {
+                      if (state is CartError) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.red));
+                      } else if (state is CartOperationSuccess) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+                      } else if (state is CartCouponApplied) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Coupon ${state.coupon.code} applied!'), backgroundColor: Colors.green));
+                      }
+                    },
+                    builder: (context, state) {
+                      final appliedCoupon = context.read<CartCubit>().appliedCoupon;
+                      double discount = 0.0;
+                      if (appliedCoupon != null) {
+                        if (appliedCoupon.discountType == 'percentage') {
+                          discount = subTotal * (appliedCoupon.discountValue / 100);
+                        } else {
+                          discount = appliedCoupon.discountValue;
+                        }
+                      }
+                      final total = (subTotal - discount) > 0 ? (subTotal - discount) : 0.0;
 
-              return Column(
-                children: [
-                  // Select All row
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          value: _selectedItemKeys.length == items.length && items.isNotEmpty,
-                          onChanged: (val) {
-                            setState(() {
-                              if (val == true) {
-                                _selectedItemKeys.addAll(items.map((e) => _getItemKey(e)));
-                              } else {
-                                _selectedItemKeys.clear();
-                              }
-                            });
-                          },
-                        ),
-                        const Text('Select All', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        final itemKey = _getItemKey(item);
-                        
-                        return Dismissible(
-                          key: Key(itemKey),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            color: Colors.red,
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: const Icon(Icons.delete, color: Colors.white),
-                          ),
-                          onDismissed: (direction) {
-                            setState(() {
-                              _dismissedItemKeys.add(itemKey);
-                              _selectedItemKeys.remove(itemKey);
-                            });
-                            final currentAuthState = context.read<AuthCubit>().state;
-                            final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
-                            context.read<CartCubit>().removeItem(currentUid, item.productId, item.selectedSize, item.selectedColor);
-                          },
-                          child: StreamBuilder<DocumentSnapshot>(
-                            stream: FirebaseFirestore.instance.collection('products').doc(item.productId).snapshots(),
-                            builder: (context, prodSnapshot) {
-                              bool isOutOfStock = false;
-                              if (prodSnapshot.hasData && prodSnapshot.data!.exists) {
-                                final stock = prodSnapshot.data!.get('stock') ?? 0;
-                                isOutOfStock = stock < item.quantity;
-                              }
-
-                              return Card(
-                                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Row(
-                                    children: [
-                                      Checkbox(
-                                        value: _selectedItemKeys.contains(itemKey),
-                                        onChanged: (val) {
-                                          setState(() {
-                                            if (val == true) {
-                                              _selectedItemKeys.add(itemKey);
-                                            } else {
-                                              _selectedItemKeys.remove(itemKey);
-                                            }
-                                          });
-                                        },
-                                      ),
-                                      Container(
-                                        width: 80,
-                                        height: 80,
-                                        color: Colors.grey[200],
-                                        child: item.image.isEmpty
-                                            ? const Icon(Icons.image)
-                                            : Image.network(item.image, fit: BoxFit.cover),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(item.productName, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                            Text('Size: ${item.selectedSize} | Color: ${item.selectedColor}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                            const SizedBox(height: 4),
-                                            Text('\$${item.price.toStringAsFixed(2)}', style: TextStyle(color: Theme.of(context).primaryColor)),
-                                            if (isOutOfStock)
-                                              const Text('Not enough stock', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
-                                          ],
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.remove_circle_outline),
-                                            onPressed: () {
-                                              if (item.quantity > 1) {
-                                                final currentAuthState = context.read<AuthCubit>().state;
-                                                final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
-                                                context.read<CartCubit>().updateQuantity(currentUid, item.productId, item.selectedSize, item.selectedColor, item.quantity - 1);
-                                              } else {
-                                                _showDeleteConfirmDialog(context, item);
-                                              }
-                                            },
-                                          ),
-                                          Text(item.quantity.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                          IconButton(
-                                            icon: const Icon(Icons.add_circle_outline),
-                                            onPressed: () {
-                                              final currentAuthState = context.read<AuthCubit>().state;
-                                              final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
-                                              context.read<CartCubit>().updateQuantity(currentUid, item.productId, item.selectedSize, item.selectedColor, item.quantity + 1);
-                                            },
-                                          ),
-                                        ],
-                                      )
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Bottom Summary & Coupon
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -5))],
-                    ),
-                    child: SafeArea(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                      return Column(
                         children: [
-                          // Coupon Field
-                          if (appliedCoupon == null)
-                            Row(
+                          // Select All row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: Row(
                               children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _couponController,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Enter Voucher Code',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                                Theme(
+                                  data: Theme.of(context).copyWith(
+                                    checkboxTheme: CheckboxThemeData(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                     ),
                                   ),
+                                  child: Checkbox(
+                                    value: _selectedItemKeys.length == items.length && items.isNotEmpty,
+                                    activeColor: Theme.of(context).primaryColor,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        if (val == true) {
+                                          _selectedItemKeys.addAll(items.map((e) => _getItemKey(e)));
+                                        } else {
+                                          _selectedItemKeys.clear();
+                                        }
+                                      });
+                                    },
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (_couponController.text.isNotEmpty && _selectedItemKeys.isNotEmpty) {
-                                      context.read<CartCubit>().applyCoupon(_couponController.text.trim(), subTotal);
-                                    } else if (_selectedItemKeys.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least 1 item to apply coupon.')));
-                                    }
-                                  },
-                                  child: const Text('Apply'),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Select All', 
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold, 
+                                    color: Theme.of(context).colorScheme.onBackground,
+                                  ),
                                 ),
-                              ],
-                            )
-                          else
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.local_offer, color: Colors.green),
-                                    const SizedBox(width: 8),
-                                    Text('Coupon ${appliedCoupon.code} applied!', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.red),
-                                  onPressed: () => context.read<CartCubit>().removeCoupon(),
-                                )
                               ],
                             ),
-                          const SizedBox(height: 16),
-                          
-                          // Summary
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Subtotal:'), Text('\$${subTotal.toStringAsFixed(2)}')]),
-                          if (discount > 0)
-                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Discount:', style: TextStyle(color: Colors.green)), Text('-\$${discount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green))]),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                              Text('\$${total.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).primaryColor)),
-                            ],
                           ),
-                          const SizedBox(height: 16),
-                          
-                          // Checkout Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: (state is CartLoading || _selectedItemKeys.isEmpty)
-                                  ? null
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) {
-                                            final currentAuthState = context.read<AuthCubit>().state;
-                                            final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
-                                            return CheckoutScreen(
-                                              userId: currentUid,
-                                              cartItems: selectedItemsList,
-                                            subTotal: subTotal,
-                                            discountAmount: discount,
-                                            totalPrice: total,
-                                              voucherApplied: appliedCoupon?.code,
-                                            );
-                                          },
+
+                          Expanded(
+                            child: ListView.builder(
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: items.length,
+                              itemBuilder: (context, index) {
+                                final item = items[index];
+                                final itemKey = _getItemKey(item);
+                                
+                                return Dismissible(
+                                  key: Key(itemKey),
+                                  direction: DismissDirection.endToStart,
+                                  background: Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    child: const Icon(Icons.delete, color: Colors.white),
+                                  ),
+                                  onDismissed: (direction) {
+                                    setState(() {
+                                      _dismissedItemKeys.add(itemKey);
+                                      _selectedItemKeys.remove(itemKey);
+                                    });
+                                    final currentAuthState = context.read<AuthCubit>().state;
+                                    final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                                    context.read<CartCubit>().removeItem(currentUid, item.productId, item.selectedSize, item.selectedColor);
+                                  },
+                                  child: StreamBuilder<DocumentSnapshot>(
+                                    stream: FirebaseFirestore.instance.collection('products').doc(item.productId).snapshots(),
+                                    builder: (context, prodSnapshot) {
+                                      bool isOutOfStock = false;
+                                      if (prodSnapshot.hasData && prodSnapshot.data!.exists) {
+                                        final stock = prodSnapshot.data!.get('stock') ?? 0;
+                                        isOutOfStock = stock < item.quantity;
+                                      }
+
+                                      return Card(
+                                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Row(
+                                            children: [
+                                              Theme(
+                                                data: Theme.of(context).copyWith(
+                                                  checkboxTheme: CheckboxThemeData(
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                  ),
+                                                ),
+                                                child: Checkbox(
+                                                  value: _selectedItemKeys.contains(itemKey),
+                                                  activeColor: Theme.of(context).primaryColor,
+                                                  onChanged: (val) {
+                                                    setState(() {
+                                                      if (val == true) {
+                                                        _selectedItemKeys.add(itemKey);
+                                                      } else {
+                                                        _selectedItemKeys.remove(itemKey);
+                                                      }
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Container(
+                                                width: 80,
+                                                height: 80,
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context).brightness == Brightness.light
+                                                      ? const Color(0xFFF5F5F9)
+                                                      : const Color(0xFF1C1C2A),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: item.image.isEmpty
+                                                      ? const Icon(Icons.image, color: Colors.grey)
+                                                      : Image.network(
+                                                          item.image,
+                                                          fit: BoxFit.contain,
+                                                          errorBuilder: (context, error, stackTrace) =>
+                                                              const Icon(Icons.image_not_supported, color: Colors.grey),
+                                                        ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      item.productName,
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 15,
+                                                        color: Theme.of(context).colorScheme.onBackground,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      'Size: ${item.selectedSize}  •  Color: ${item.selectedColor}',
+                                                      style: TextStyle(
+                                                        color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 6),
+                                                    Text(
+                                                      '\$${item.price.toStringAsFixed(2)}',
+                                                      style: TextStyle(
+                                                        color: Theme.of(context).primaryColor,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                    if (isOutOfStock) ...[
+                                                      const SizedBox(height: 2),
+                                                      const Text(
+                                                        'Not enough stock',
+                                                        style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context).brightness == Brightness.light
+                                                      ? const Color(0xFFF5F5F9)
+                                                      : const Color(0xFF1C1C2A),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        if (item.quantity > 1) {
+                                                          final currentAuthState = context.read<AuthCubit>().state;
+                                                          final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                                                          context.read<CartCubit>().updateQuantity(currentUid, item.productId, item.selectedSize, item.selectedColor, item.quantity - 1);
+                                                        } else {
+                                                          _showDeleteConfirmDialog(context, item);
+                                                        }
+                                                      },
+                                                      child: Padding(
+                                                        padding: const EdgeInsets.all(8.0),
+                                                        child: Icon(Icons.remove, size: 14, color: Theme.of(context).colorScheme.onBackground),
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                                                      child: Text(
+                                                        item.quantity.toString(),
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Theme.of(context).colorScheme.onBackground,
+                                                          fontSize: 13,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        final currentAuthState = context.read<AuthCubit>().state;
+                                                        final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                                                        context.read<CartCubit>().updateQuantity(currentUid, item.productId, item.selectedSize, item.selectedColor, item.quantity + 1);
+                                                      },
+                                                      child: Padding(
+                                                        padding: const EdgeInsets.all(8.0),
+                                                        child: Icon(Icons.add, size: 14, color: Theme.of(context).colorScheme.onBackground),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       );
-                                    },
-                              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                              child: state is CartLoading
-                                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : Text('Proceed to Checkout (${_selectedItemKeys.length})', style: const TextStyle(fontSize: 16)),
+                                    }
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+
+                          // Bottom Summary & Coupon
+                          Container(
+                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.light
+                                  ? Colors.white
+                                  : const Color(0xFF161622),
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 24,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: Theme.of(context).dividerColor.withOpacity(0.08),
+                                width: 1,
+                              ),
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Coupon Field
+                                  if (appliedCoupon == null)
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _couponController,
+                                            decoration: InputDecoration(
+                                              hintText: 'Enter Voucher Code',
+                                              filled: true,
+                                              fillColor: Theme.of(context).brightness == Brightness.light
+                                                  ? const Color(0xFFF5F5F9)
+                                                  : const Color(0xFF1C1C2A),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(12),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                            ),
+                                            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onBackground),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            if (_couponController.text.isNotEmpty && _selectedItemKeys.isNotEmpty) {
+                                              context.read<CartCubit>().applyCoupon(_couponController.text.trim(), subTotal);
+                                            } else if (_selectedItemKeys.isEmpty) {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least 1 item to apply coupon.')));
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                          child: const Text('Apply'),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.local_offer, color: Colors.green, size: 18),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Coupon ${appliedCoupon.code} applied!', 
+                                                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                                            onPressed: () => context.read<CartCubit>().removeCoupon(),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  const SizedBox(height: 16),
+                                  
+                                  // Summary
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                                    children: [
+                                      Text('Subtotal:', style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6))), 
+                                      Text('\$${subTotal.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
+                                    ],
+                                  ),
+                                  if (discount > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                                      children: [
+                                        const Text('Discount:', style: TextStyle(color: Colors.green)), 
+                                        Text('-\$${discount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ],
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                                    child: Divider(height: 1),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).colorScheme.onBackground)),
+                                      Text('\$${total.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).primaryColor)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  
+                                  // Checkout Button
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: (state is CartLoading || _selectedItemKeys.isEmpty)
+                                          ? null
+                                          : () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) {
+                                                    final currentAuthState = context.read<AuthCubit>().state;
+                                                    final currentUid = currentAuthState is AuthAuthenticated ? currentAuthState.user.uid : 'guest';
+                                                    return CheckoutScreen(
+                                                      userId: currentUid,
+                                                      cartItems: selectedItemsList,
+                                                    subTotal: subTotal,
+                                                    discountAmount: discount,
+                                                    totalPrice: total,
+                                                      voucherApplied: appliedCoupon?.code,
+                                                    );
+                                                  },
+                                                ),
+                                              );
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      ),
+                                      child: state is CartLoading
+                                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                          : Text('Proceed to Checkout (${_selectedItemKeys.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  )
-                ],
-              );
-            },
-          );
-        },
-      ),
-      );
-    },
+                      );
+                    },
+                  );
+                }
+              ),
+        );
+      },
     );
   }
 }
