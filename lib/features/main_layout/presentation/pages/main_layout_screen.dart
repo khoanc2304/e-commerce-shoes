@@ -6,6 +6,8 @@ import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../../cart/data/models/cart_model.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../chat/data/repositories/chat_repository.dart';
+import '../../../product/presentation/cubit/product_cubit.dart';
+import '../../../product/presentation/pages/home_dashboard_screen.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -21,6 +23,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   final _chatRepository = ChatRepository();
 
   void _goBranch(int index) {
+    if (index == 0) {
+      homeDashboardKey.currentState?.fetchProducts();
+    }
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,

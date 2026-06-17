@@ -11,14 +11,16 @@ import '../../../chat/data/repositories/chat_repository.dart';
 import 'product_detail_screen.dart';
 import 'package:go_router/go_router.dart';
 
+final GlobalKey<HomeDashboardScreenState> homeDashboardKey = GlobalKey<HomeDashboardScreenState>();
+
 class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({Key? key}) : super(key: key);
 
   @override
-  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+  State<HomeDashboardScreen> createState() => HomeDashboardScreenState();
 }
 
-class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+class HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final List<String> _brands = ['All', 'Nike', 'Adidas', 'Puma', 'Vans', 'Converse'];
   String _selectedBrand = 'All';
 
@@ -32,7 +34,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchProducts();
+    fetchProducts();
     
     // Load recently viewed for the current user
     final authState = context.read<AuthCubit>().state;
@@ -41,7 +43,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     }
   }
 
-  void _fetchProducts() {
+  void fetchProducts() {
     context.read<ProductCubit>().loadProducts(
       brand: _selectedBrand == 'All' ? null : _selectedBrand,
     );
@@ -77,9 +79,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         ],
       ),
       body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: () async {
+            fetchProducts();
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            slivers: [
             // Header chào mừng cao cấp
             SliverToBoxAdapter(
               child: Padding(
@@ -126,16 +132,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         child: CircleAvatar(
                           radius: 24,
                           backgroundColor: Theme.of(context).primaryColor,
-                          child: Text(
-                            authState is AuthAuthenticated 
-                                ? authState.user.fullName[0].toUpperCase() 
-                                : 'G',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                          ),
+                          backgroundImage: (authState is AuthAuthenticated && authState.user.avatarUrl.isNotEmpty)
+                              ? NetworkImage(authState.user.avatarUrl)
+                              : null,
+                          child: (authState is AuthAuthenticated && authState.user.avatarUrl.isNotEmpty)
+                              ? null
+                              : Text(
+                                  authState is AuthAuthenticated 
+                                      ? authState.user.fullName[0].toUpperCase() 
+                                      : 'G',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -369,7 +380,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                           setState(() {
                             _selectedBrand = brand;
                           });
-                          _fetchProducts();
+                          fetchProducts();
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
@@ -608,6 +619,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             )
           ],
         ),
+      ),
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,

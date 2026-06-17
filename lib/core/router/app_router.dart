@@ -13,6 +13,7 @@ import '../../features/admin/presentation/pages/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/pages/admin_product_list_screen.dart';
 import '../../features/admin/presentation/pages/admin_product_management.dart';
 import '../../features/admin/presentation/pages/admin_orders_screen.dart';
+import '../../features/admin/presentation/pages/admin_store_management_screen.dart';
 import '../../features/admin/presentation/pages/admin_chat_hub_screen.dart';
 import '../../features/admin/presentation/pages/admin_chat_screen.dart';
 import '../../features/chat/presentation/pages/customer_chat_screen.dart';
@@ -45,7 +46,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) => const HomeDashboardScreen(),
+                builder: (context, state) => HomeDashboardScreen(key: homeDashboardKey),
                 routes: [
                   GoRoute(
                     path: 'product',
@@ -116,6 +117,10 @@ class AppRouter {
       GoRoute(
         path: '/admin/orders',
         builder: (BuildContext context, GoRouterState state) => const AdminOrdersScreen(),
+      ),
+      GoRoute(
+        path: '/admin/stores',
+        builder: (BuildContext context, GoRouterState state) => const AdminStoreManagementScreen(),
       ),
       // Admin Chat Detail (AdminChatHubScreen is now at /chat)
       GoRoute(

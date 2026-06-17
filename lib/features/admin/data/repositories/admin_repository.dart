@@ -14,7 +14,7 @@ class AdminRepository {
     try {
       final snapshot = await _firestore
           .collection('orders')
-          .where('status', isEqualTo: 'completed')
+          .where('status', isEqualTo: 'delivered')
           .orderBy('createdAt', descending: true)
           .get();
 

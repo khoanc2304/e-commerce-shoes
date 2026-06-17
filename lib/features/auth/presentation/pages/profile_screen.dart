@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../../../product/presentation/pages/store_location_screen.dart';
 import '../widgets/address_bottom_sheet.dart';
 import '../../data/models/user_model.dart';
 import 'sign_in_screen.dart';
@@ -113,6 +114,20 @@ class ProfileScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
+                    ListTile(
+                      leading: const Icon(Icons.store, color: Colors.blue),
+                      title: const Text('Store Locations'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StoreLocationScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
