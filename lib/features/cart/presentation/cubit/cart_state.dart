@@ -28,7 +28,14 @@ class CartCouponApplied extends CartState {
   List<Object?> get props => [coupon];
 }
 
-class CartCheckoutSuccess extends CartState {}
+class CartCheckoutSuccess extends CartState {
+  final String orderId;
+  final String paymentMethod;
+  const CartCheckoutSuccess({required this.orderId, required this.paymentMethod});
+
+  @override
+  List<Object?> get props => [orderId, paymentMethod];
+}
 
 class CartError extends CartState {
   final String message;

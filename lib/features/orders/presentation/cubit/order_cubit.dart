@@ -27,4 +27,14 @@ class OrderCubit extends Cubit<OrderState> {
       emit(OrderError(e.toString()));
     }
   }
+
+  Future<void> updatePaymentStatus(String orderId, bool isPaid) async {
+    emit(OrderLoading());
+    try {
+      await _orderRepository.updatePaymentStatus(orderId, isPaid);
+      emit(OrderOperationSuccess('Order payment status updated successfully.'));
+    } catch (e) {
+      emit(OrderError(e.toString()));
+    }
+  }
 }

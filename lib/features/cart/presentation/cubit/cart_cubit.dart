@@ -81,7 +81,7 @@ class CartCubit extends Cubit<CartState> {
   }) async {
     emit(CartLoading());
     try {
-      await _orderRepository.executeCheckout(
+      final orderId = await _orderRepository.executeCheckout(
         userId: userId,
         customerName: customerName,
         email: email,
@@ -96,9 +96,18 @@ class CartCubit extends Cubit<CartState> {
       
       // Reset local state after successful checkout
       appliedCoupon = null;
-      emit(CartCheckoutSuccess());
+      emit(CartCheckoutSuccess(orderId: orderId, paymentMethod: paymentMethod));
     } catch (e) {
       emit(CartError(e.toString().replaceAll("Exception: ", "")));
+    }
+  }
+
+  Future<void> restoreCart(String userId, List<CartItemModel> items) async {
+    try {
+      await _cartRepository.restoreCart(userId, items);
+      emit(const CartOperationSuccess("Cart restored."));
+    } catch (e) {
+      emit(CartError("Failed to restore cart: $e"));
     }
   }
 }

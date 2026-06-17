@@ -7,6 +7,9 @@ import '../cubit/cart_state.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../../auth/data/models/user_model.dart';
+import '../../../orders/presentation/cubit/order_cubit.dart';
+import '../../../../core/utils/vnpay_service.dart';
+import 'vnpay_webview_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String userId;
@@ -32,7 +35,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   String _selectedPaymentMethod = 'Cash on Delivery';
-  final List<String> _paymentMethods = ['Cash on Delivery', 'Credit Card'];
+  final List<String> _paymentMethods = ['Cash on Delivery', 'Credit Card', 'VNPay'];
   ShippingAddress? _selectedAddress;
 
   UserModel? _currentUser;
@@ -213,6 +216,83 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
   }
 
+  void _handleVNPayPayment(BuildContext context, String orderId) async {
+    final paymentUrl = VNPayService.generatePaymentUrl(
+      txnRef: orderId,
+      amountInUsd: widget.totalPrice,
+      orderInfo: 'Thanh_toan_don_hang_${orderId.substring(0, 8)}',
+    );
+
+    // Capture Blocs và ScaffoldMessenger trước khi bắt đầu phần bất đồng bộ (async gap)
+    final orderCubit = context.read<OrderCubit>();
+    final cartCubit = context.read<CartCubit>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final result = await Navigator.push<Map<String, String>?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VNPayWebViewScreen(paymentUrl: paymentUrl),
+      ),
+    );
+
+    if (result != null) {
+      final isSignatureValid = VNPayService.verifyResponseSignature(result);
+      final responseCode = result['vnp_ResponseCode'];
+
+      if (isSignatureValid && responseCode == '00') {
+        // Cập nhật trạng thái đã thanh toán trong DB
+        await orderCubit.updatePaymentStatus(orderId, true);
+        if (mounted) {
+          _showSuccessDialog();
+        }
+      } else {
+        // Hủy đơn hàng và khôi phục tồn kho sản phẩm
+        await orderCubit.updateOrderStatus(orderId, 'cancelled');
+        // Khôi phục lại giỏ hàng cho người dùng
+        await cartCubit.restoreCart(widget.userId, widget.cartItems);
+        
+        if (mounted) {
+          String errorMsg = 'Thanh toán thất bại hoặc đã bị hủy.';
+          if (responseCode == '24') {
+            errorMsg = 'Giao dịch thanh toán đã bị hủy bởi người dùng.';
+          }
+          
+          scaffoldMessenger.showSnackBar(
+            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } else {
+      await orderCubit.updateOrderStatus(orderId, 'cancelled');
+      await cartCubit.restoreCart(widget.userId, widget.cartItems);
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('Giao dịch thanh toán đã bị hủy.'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đặt hàng thành công!'),
+        content: const Text('Đơn hàng của bạn đã được đặt thành công.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(); // Đóng popup thông báo
+              Navigator.of(context).pop(); // Quay lại màn hình trước checkout (CartScreen)
+            },
+            child: const Text('OK'),
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthCubit, AuthState>(
@@ -239,24 +319,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           body: BlocConsumer<CartCubit, CartState>(
             listener: (context, state) {
               if (state is CartCheckoutSuccess) {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Order Placed!'),
-                    content: const Text('Your order has been successfully placed.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(ctx).pop(); // pop dialog
-                          Navigator.of(context).pop(); // pop checkout
-                          Navigator.of(context).pop(); // pop cart
-                        },
-                        child: const Text('OK'),
-                      )
-                    ],
-                  ),
-                );
+                if (state.paymentMethod == 'VNPay') {
+                  _handleVNPayPayment(context, state.orderId);
+                } else {
+                  _showSuccessDialog();
+                }
               } else if (state is CartError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(state.message), backgroundColor: Colors.red),

@@ -99,6 +99,34 @@ class CartRepository {
     });
   }
 
+  Future<void> restoreCart(String userId, List<CartItemModel> items) async {
+    final cartRef = _firestore.collection('carts').doc(userId);
+    await _firestore.runTransaction((transaction) async {
+      final doc = await transaction.get(cartRef);
+      if (doc.exists) {
+        final data = doc.data()!;
+        List<dynamic> currentItems = data['items'] ?? [];
+        for (var item in items) {
+          bool exists = currentItems.any((x) =>
+              x['productId'] == item.productId &&
+              x['selectedSize'] == item.selectedSize &&
+              x['selectedColor'] == item.selectedColor);
+          if (!exists) {
+            currentItems.add(item.toMap());
+          }
+        }
+        transaction.update(cartRef, {'items': currentItems, 'updatedAt': FieldValue.serverTimestamp()});
+      } else {
+        final newCart = CartModel(
+          cartId: userId,
+          userId: userId,
+          items: items,
+        );
+        transaction.set(cartRef, newCart.toMap());
+      }
+    });
+  }
+
   Future<CouponModel?> validateCoupon(String code, double currentSubtotal) async {
     final query = await _firestore
         .collection('coupons')
