@@ -46,7 +46,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) => const HomeDashboardScreen(),
+                builder: (context, state) => HomeDashboardScreen(key: homeDashboardKey),
                 routes: [
                   GoRoute(
                     path: 'product',

@@ -162,7 +162,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             onPressed: () {
-                              context.push('/admin/chats');
+                              context.go('/chat');
                             },
                           ),
                         ),
