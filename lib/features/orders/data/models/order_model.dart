@@ -57,6 +57,7 @@ class OrderModel {
   final double totalPrice;
   final String paymentMethod;
   final String status; // "pending" | "delivering" | "completed" | "cancelled"
+  final bool isPaid;
   final Timestamp? createdAt;
 
   OrderModel({
@@ -72,6 +73,7 @@ class OrderModel {
     required this.totalPrice,
     required this.paymentMethod,
     required this.status,
+    required this.isPaid,
     this.createdAt,
   });
 
@@ -89,6 +91,7 @@ class OrderModel {
       'totalPrice': totalPrice,
       'paymentMethod': paymentMethod,
       'status': status,
+      'isPaid': isPaid,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
     };
   }
@@ -111,6 +114,7 @@ class OrderModel {
       totalPrice: (map['totalPrice'] ?? 0.0).toDouble(),
       paymentMethod: map['paymentMethod'] ?? 'Cash on Delivery',
       status: map['status'] ?? 'pending',
+      isPaid: map['isPaid'] ?? false,
       createdAt: map['createdAt'] as Timestamp?,
     );
   }

@@ -75,7 +75,13 @@ class OrderRepository {
     }
   }
 
-  Future<void> executeCheckout({
+  Future<void> updatePaymentStatus(String orderId, bool isPaid) async {
+    await _firestore.collection('orders').doc(orderId).update({
+      'isPaid': isPaid,
+    });
+  }
+
+  Future<String> executeCheckout({
     required String userId,
     required String customerName,
     required String email,
@@ -88,6 +94,8 @@ class OrderRepository {
     required String paymentMethod,
   }) async {
     if (cartItems.isEmpty) throw Exception("Cart is empty.");
+
+    final orderId = const Uuid().v4();
 
     try {
       await _firestore.runTransaction((transaction) async {
@@ -130,7 +138,6 @@ class OrderRepository {
         }
 
         // 3. Create the Order Document
-        final orderId = const Uuid().v4();
         final orderRef = _firestore.collection('orders').doc(orderId);
         
         final orderItems = cartItems.map((cartItem) => OrderItemModel(
@@ -156,6 +163,7 @@ class OrderRepository {
           totalPrice: totalPrice,
           paymentMethod: paymentMethod,
           status: 'pending',
+          isPaid: false,
           createdAt: Timestamp.now(),
         );
 
@@ -179,6 +187,7 @@ class OrderRepository {
           });
         }
       });
+      return orderId;
     } catch (e) {
       // Re-throw to handle in UI
       throw Exception('Checkout failed: $e');

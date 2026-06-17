@@ -116,7 +116,33 @@ class UserOrdersScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('Date: ${order.createdAt?.toDate().toString().split('.')[0] ?? ''}'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Date: ${order.createdAt?.toDate().toString().split('.')[0] ?? ''}'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: order.isPaid
+                            ? Colors.green.withOpacity(0.1)
+                            : (order.paymentMethod == 'VNPay' ? Colors.orange.withOpacity(0.1) : Colors.blue.withOpacity(0.1)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        order.isPaid
+                            ? 'Đã thanh toán (VNPay)'
+                            : (order.paymentMethod == 'VNPay' ? 'Chờ thanh toán (VNPay)' : 'Thanh toán COD'),
+                        style: TextStyle(
+                          color: order.isPaid
+                              ? Colors.green
+                              : (order.paymentMethod == 'VNPay' ? Colors.orange : Colors.blue),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 const Divider(),
                 ...order.items.map((item) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
