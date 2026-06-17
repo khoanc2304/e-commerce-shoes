@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/models/product_model.dart';
 import '../../data/models/review_model.dart';
 import '../cubit/product_cubit.dart';
 import '../cubit/product_state.dart';
-import 'product_comparison_screen.dart';
+import '../cubit/user_activity_cubit.dart';
+import '../cubit/user_activity_state.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../cart/data/models/cart_model.dart';
+import '../../../cart/presentation/cubit/cart_cubit.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -18,13 +24,17 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int? _selectedSize;
-  String? _selectedColor;
+  String? _selectedColor; 
+  int _quantity = 1;
 
   @override
   void initState() {
     super.initState();
     // Load reviews when entering
     context.read<ProductCubit>().loadProductReviews(widget.product);
+    
+    // Add to recently viewed
+    context.read<UserActivityCubit>().addToRecent(widget.product);
   }
 
   void _showAddReviewModal(BuildContext context) {
@@ -110,23 +120,57 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       appBar: AppBar(
         title: Text(product.name),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.compare_arrows),
-            tooltip: 'Compare',
-            onPressed: () {
-              // In a real app, you might pick another product first
-              // Here we just navigate to comparison for demonstration
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProductComparisonScreen(
-                    product1: product,
-                    product2: product, // Normally a different product
-                  ),
+          BlocBuilder<UserActivityCubit, UserActivityState>(
+            builder: (context, state) {
+              final isComparing = state.compareList.any((p) => p.productId == widget.product.productId);
+              return IconButton(
+                icon: Icon(
+                  isComparing ? Icons.compare_arrows : Icons.compare_arrows_outlined,
+                  color: isComparing ? Colors.orange : Colors.grey,
                 ),
+                tooltip: 'Compare',
+                onPressed: () {
+                  context.read<UserActivityCubit>().toggleCompare(widget.product);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isComparing ? 'Removed from comparison' : 'Added to comparison'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
               );
             },
-          )
+          ),
+          BlocBuilder<AuthCubit, AuthState>(
+            builder: (context, authState) {
+              if (authState is AuthAuthenticated) {
+                return StreamBuilder<CartModel?>(
+                  stream: context.read<CartCubit>().getCartStream(authState.user.uid),
+                  builder: (context, snapshot) {
+                    final int itemCount = snapshot.data?.items.length ?? 0;
+                    return IconButton(
+                      icon: Badge(
+                        label: Text(itemCount.toString()),
+                        isLabelVisible: itemCount > 0,
+                        child: const Icon(Icons.shopping_cart),
+                      ),
+                      tooltip: 'Cart',
+                      onPressed: () {
+                        context.push('/cart');
+                      },
+                    );
+                  },
+                );
+              }
+              return IconButton(
+                icon: const Icon(Icons.shopping_cart),
+                tooltip: 'Cart',
+                onPressed: () {
+                  context.push('/cart');
+                },
+              );
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -207,6 +251,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   
                   const Divider(height: 32),
 
+                  const Divider(height: 32),
+                  
+                  // Colors
+                  if (product.colors.isNotEmpty) ...[
+                    const Text('Available Colors', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: product.colors.map((color) {
+                        return ChoiceChip(
+                          label: Text(color),
+                          selected: _selectedColor == color,
+                          onSelected: (selected) {
+                            setState(() => _selectedColor = selected ? color : null);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const Divider(height: 32),
+                  ],
+
                   // Reviews Section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -273,15 +338,106 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -5)),
           ],
         ),
-        child: ElevatedButton(
-          onPressed: () {
-            // Add to Cart logic
-          },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-          child: const Text('Add to Cart', style: TextStyle(fontSize: 18)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Quantity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        if (_quantity > 1) setState(() => _quantity--);
+                      },
+                    ),
+                    Text('$_quantity', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () {
+                        setState(() => _quantity++);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (_selectedSize == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please select a size first.')),
+                    );
+                    return;
+                  }
+                  if (product.colors.isNotEmpty && _selectedColor == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please select a color first.')),
+                    );
+                    return;
+                  }
+
+                  final authState = context.read<AuthCubit>().state;
+                  if (authState is! AuthAuthenticated) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please log in to add to cart.')),
+                    );
+                    return;
+                  }
+
+                  final cartItem = CartItemModel(
+                    productId: product.productId,
+                    productName: product.name,
+                    image: product.images.isNotEmpty ? product.images.first : '',
+                    selectedSize: _selectedSize!,
+                    selectedColor: _selectedColor ?? '',
+                    quantity: _quantity,
+                    price: product.basePrice,
+                  );
+
+                  context.read<CartCubit>().addToCart(authState.user.uid, cartItem);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Added $_quantity items to cart!'), backgroundColor: Colors.green),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Add to Cart', style: TextStyle(fontSize: 18)),
+              ),
+            ),
+          ],
         ),
+      ),
+      floatingActionButton: BlocBuilder<UserActivityCubit, UserActivityState>(
+        builder: (context, state) {
+          if (state.compareList.isEmpty) return const SizedBox.shrink();
+          
+          return FloatingActionButton(
+            onPressed: () {
+              if (state.compareList.length == 2) {
+                context.push('/compare', extra: {
+                  'product1': state.compareList[0],
+                  'product2': state.compareList[1],
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please select one more product to compare.')),
+                );
+              }
+            },
+            backgroundColor: state.compareList.length == 2 ? Theme.of(context).primaryColor : Colors.orange,
+            child: Badge(
+              label: Text(state.compareList.length.toString()),
+              child: const Icon(Icons.compare_arrows),
+            ),
+          );
+        },
       ),
     );
   }

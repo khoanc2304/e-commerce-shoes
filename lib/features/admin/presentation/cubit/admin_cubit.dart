@@ -54,11 +54,8 @@ class AdminCubit extends Cubit<AdminState> {
       await _adminRepository.addProduct(newProduct);
       
       emit(const AdminOperationSuccess("Product created successfully!"));
-      // Reload analytics or return to initial
-      loadAnalytics(); 
     } catch (e) {
       emit(AdminError(e.toString()));
-      loadAnalytics(); 
     }
   }
   Future<void> loadAllProducts() async {
@@ -89,9 +86,6 @@ class AdminCubit extends Cubit<AdminState> {
     try {
       await _adminRepository.updateProduct(product);
       emit(const AdminOperationSuccess("Product updated successfully!"));
-      // Reload products
-      final products = await _adminRepository.getAllProducts();
-      emit(AdminProductsLoaded(products));
     } catch (e) {
       emit(AdminError(e.toString()));
     }

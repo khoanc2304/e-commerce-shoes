@@ -125,13 +125,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             onPressed: () async {
-                              // We use push to allow coming back to dashboard
-                              // and not losing the analytics state, though it might reload
                               await context.push('/admin/products'); 
-                              // Reload analytics when coming back from products screen
                               if (context.mounted) {
                                 context.read<AdminCubit>().loadAnalytics();
                               }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.receipt_long),
+                            label: const Text('Manage Orders'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () {
+                              context.push('/admin/orders');
                             },
                           ),
                         ),

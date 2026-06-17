@@ -22,18 +22,27 @@ class CartCubit extends Cubit<CartState> {
     return _cartRepository.getCartStream(userId);
   }
 
-  Future<void> updateQuantity(String userId, String productId, int newQuantity) async {
+  Future<void> addToCart(String userId, CartItemModel newItem) async {
+    try {
+      await _cartRepository.addToCart(userId, newItem);
+      emit(const CartOperationSuccess("Item added to cart!"));
+    } catch (e) {
+      emit(CartError("Failed to add to cart: $e"));
+    }
+  }
+
+  Future<void> updateQuantity(String userId, String productId, int size, String color, int newQuantity) async {
     if (newQuantity < 1) return;
     try {
-      await _cartRepository.updateCartItemQuantity(userId, productId, newQuantity);
+      await _cartRepository.updateCartItemQuantity(userId, productId, size, color, newQuantity);
     } catch (e) {
       emit(CartError("Failed to update quantity: $e"));
     }
   }
 
-  Future<void> removeItem(String userId, String productId) async {
+  Future<void> removeItem(String userId, String productId, int size, String color) async {
     try {
-      await _cartRepository.removeCartItem(userId, productId);
+      await _cartRepository.removeCartItem(userId, productId, size, color);
       emit(const CartOperationSuccess("Item removed from cart."));
     } catch (e) {
       emit(CartError("Failed to remove item: $e"));

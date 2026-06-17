@@ -21,7 +21,44 @@ class CartRepository {
     });
   }
 
-  Future<void> updateCartItemQuantity(String userId, String productId, int newQuantity) async {
+  Future<void> addToCart(String userId, CartItemModel newItem) async {
+    final cartRef = _firestore.collection('carts').doc(userId);
+    
+    await _firestore.runTransaction((transaction) async {
+      final doc = await transaction.get(cartRef);
+      if (doc.exists) {
+        final data = doc.data()!;
+        List<dynamic> items = data['items'] ?? [];
+        
+        bool itemExists = false;
+        for (int i = 0; i < items.length; i++) {
+          if (items[i]['productId'] == newItem.productId && 
+              items[i]['selectedSize'] == newItem.selectedSize &&
+              items[i]['selectedColor'] == newItem.selectedColor) {
+            items[i]['quantity'] = (items[i]['quantity'] ?? 0) + newItem.quantity;
+            itemExists = true;
+            break;
+          }
+        }
+        
+        if (!itemExists) {
+          items.add(newItem.toMap());
+        }
+        
+        transaction.update(cartRef, {'items': items, 'updatedAt': FieldValue.serverTimestamp()});
+      } else {
+        // Create new cart
+        final newCart = CartModel(
+          cartId: userId,
+          userId: userId,
+          items: [newItem],
+        );
+        transaction.set(cartRef, newCart.toMap());
+      }
+    });
+  }
+
+  Future<void> updateCartItemQuantity(String userId, String productId, int size, String color, int newQuantity) async {
     final cartRef = _firestore.collection('carts').doc(userId);
     
     await _firestore.runTransaction((transaction) async {
@@ -31,7 +68,9 @@ class CartRepository {
         List<dynamic> items = data['items'] ?? [];
         
         for (int i = 0; i < items.length; i++) {
-          if (items[i]['productId'] == productId) {
+          if (items[i]['productId'] == productId && 
+              items[i]['selectedSize'] == size &&
+              items[i]['selectedColor'] == color) {
             items[i]['quantity'] = newQuantity;
             break;
           }
@@ -41,7 +80,7 @@ class CartRepository {
     });
   }
 
-  Future<void> removeCartItem(String userId, String productId) async {
+  Future<void> removeCartItem(String userId, String productId, int size, String color) async {
     final cartRef = _firestore.collection('carts').doc(userId);
     
     await _firestore.runTransaction((transaction) async {
@@ -50,7 +89,10 @@ class CartRepository {
         final data = doc.data()!;
         List<dynamic> items = data['items'] ?? [];
         
-        items.removeWhere((item) => item['productId'] == productId);
+        items.removeWhere((item) => 
+            item['productId'] == productId && 
+            item['selectedSize'] == size &&
+            item['selectedColor'] == color);
         
         transaction.update(cartRef, {'items': items, 'updatedAt': FieldValue.serverTimestamp()});
       }

@@ -41,7 +41,7 @@ class UserModel {
   final String email;
   final String fullName;
   final String avatarUrl;
-  final String role; // "user" | "admin"
+  final String role; // "customer" | "admin"
   final List<ShippingAddress> shippingAddresses;
   final Timestamp? createdAt;
 
@@ -73,7 +73,7 @@ class UserModel {
       email: map['email'] ?? '',
       fullName: map['fullName'] ?? '',
       avatarUrl: map['avatarUrl'] ?? '',
-      role: map['role'] ?? 'user',
+      role: map['role'] ?? 'customer',
       shippingAddresses: map['shippingAddresses'] != null
           ? List<ShippingAddress>.from((map['shippingAddresses'] as List).map(
               (x) => ShippingAddress.fromMap(x as Map<String, dynamic>),

@@ -20,3 +20,12 @@ class OrderError extends OrderState {
   @override
   List<Object?> get props => [message];
 }
+
+class OrderOperationSuccess extends OrderState {
+  final String message;
+
+  const OrderOperationSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

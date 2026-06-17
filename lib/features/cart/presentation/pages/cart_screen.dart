@@ -17,36 +17,71 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final TextEditingController _couponController = TextEditingController();
+  final Set<String> _selectedItemKeys = {};
+  final Set<String> _dismissedItemKeys = {};
+
+  String _getItemKey(CartItemModel item) {
+    return '${item.productId}_${item.selectedSize}_${item.selectedColor}';
+  }
 
   double _calculateSubtotal(List<CartItemModel> items) {
-    return items.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+    return items.where((item) => _selectedItemKeys.contains(_getItemKey(item)))
+                .fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+  }
+
+  void _showDeleteConfirmDialog(BuildContext context, CartItemModel item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Product'),
+        content: const Text('Do you want to remove this product from the cart?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<CartCubit>().removeItem(widget.userId, item.productId, item.selectedSize, item.selectedColor);
+              setState(() {
+                _dismissedItemKeys.add(_getItemKey(item));
+                _selectedItemKeys.remove(_getItemKey(item));
+              });
+            },
+            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cartStream = context.read<CartCubit>().getCartStream(widget.userId);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Cart')),
-      body: StreamBuilder<CartModel?>(
-        stream: cartStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return StreamBuilder<CartModel?>(
+      stream: cartStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(appBar: AppBar(title: const Text('My Cart')), body: const Center(child: CircularProgressIndicator()));
+        }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+        if (snapshot.hasError) {
+          return Scaffold(appBar: AppBar(title: const Text('My Cart')), body: Center(child: Text('Error: ${snapshot.error}')));
+        }
 
-          final cart = snapshot.data;
-          final items = cart?.items ?? [];
+        final cart = snapshot.data;
+        final items = (cart?.items ?? []).where((item) => !_dismissedItemKeys.contains(_getItemKey(item))).toList();
 
-          if (items.isEmpty) {
-            return const Center(child: Text('Your cart is empty.'));
-          }
-
-          final subTotal = _calculateSubtotal(items);
+        return Scaffold(
+          appBar: AppBar(title: Text(items.isEmpty ? 'My Cart' : 'My Cart (${items.length})')),
+          body: items.isEmpty 
+            ? const Center(child: Text('Your cart is empty.'))
+            : Builder(
+                builder: (context) {
+                  final subTotal = _calculateSubtotal(items);
+          final selectedItemsList = items.where((i) => _selectedItemKeys.contains(_getItemKey(i))).toList();
           
           return BlocConsumer<CartCubit, CartState>(
             listener: (context, state) {
@@ -70,22 +105,39 @@ class _CartScreenState extends State<CartScreen> {
               }
               final total = (subTotal - discount) > 0 ? (subTotal - discount) : 0.0;
 
-              // Check if any items are out of stock to block checkout globally
-              // We'll track it using a boolean that might update based on the Futures below
-              // A more robust approach uses Rx/Streams for all items combined.
-              // For UI demonstration, we'll allow the button but atomic transaction will catch it,
-              // but we also disable it if we know an item is out of stock visually.
-
               return Column(
                 children: [
+                  // Select All row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: _selectedItemKeys.length == items.length && items.isNotEmpty,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedItemKeys.addAll(items.map((e) => _getItemKey(e)));
+                              } else {
+                                _selectedItemKeys.clear();
+                              }
+                            });
+                          },
+                        ),
+                        const Text('Select All', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+
                   Expanded(
                     child: ListView.builder(
                       itemCount: items.length,
                       itemBuilder: (context, index) {
                         final item = items[index];
+                        final itemKey = _getItemKey(item);
                         
                         return Dismissible(
-                          key: Key(item.productId),
+                          key: Key(itemKey),
                           direction: DismissDirection.endToStart,
                           background: Container(
                             color: Colors.red,
@@ -94,10 +146,13 @@ class _CartScreenState extends State<CartScreen> {
                             child: const Icon(Icons.delete, color: Colors.white),
                           ),
                           onDismissed: (direction) {
-                            context.read<CartCubit>().removeItem(widget.userId, item.productId);
+                            setState(() {
+                              _dismissedItemKeys.add(itemKey);
+                              _selectedItemKeys.remove(itemKey);
+                            });
+                            context.read<CartCubit>().removeItem(widget.userId, item.productId, item.selectedSize, item.selectedColor);
                           },
                           child: StreamBuilder<DocumentSnapshot>(
-                            // Real-time stock checking
                             stream: FirebaseFirestore.instance.collection('products').doc(item.productId).snapshots(),
                             builder: (context, prodSnapshot) {
                               bool isOutOfStock = false;
@@ -112,6 +167,18 @@ class _CartScreenState extends State<CartScreen> {
                                   padding: const EdgeInsets.all(8.0),
                                   child: Row(
                                     children: [
+                                      Checkbox(
+                                        value: _selectedItemKeys.contains(itemKey),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            if (val == true) {
+                                              _selectedItemKeys.add(itemKey);
+                                            } else {
+                                              _selectedItemKeys.remove(itemKey);
+                                            }
+                                          });
+                                        },
+                                      ),
                                       Container(
                                         width: 80,
                                         height: 80,
@@ -125,12 +192,12 @@ class _CartScreenState extends State<CartScreen> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(item.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                            Text(item.productName, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                                             Text('Size: ${item.selectedSize} | Color: ${item.selectedColor}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                                             const SizedBox(height: 4),
                                             Text('\$${item.price.toStringAsFixed(2)}', style: TextStyle(color: Theme.of(context).primaryColor)),
                                             if (isOutOfStock)
-                                              const Text('Out of stock / Not enough stock', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                                              const Text('Not enough stock', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
                                           ],
                                         ),
                                       ),
@@ -140,7 +207,9 @@ class _CartScreenState extends State<CartScreen> {
                                             icon: const Icon(Icons.remove_circle_outline),
                                             onPressed: () {
                                               if (item.quantity > 1) {
-                                                context.read<CartCubit>().updateQuantity(widget.userId, item.productId, item.quantity - 1);
+                                                context.read<CartCubit>().updateQuantity(widget.userId, item.productId, item.selectedSize, item.selectedColor, item.quantity - 1);
+                                              } else {
+                                                _showDeleteConfirmDialog(context, item);
                                               }
                                             },
                                           ),
@@ -148,7 +217,7 @@ class _CartScreenState extends State<CartScreen> {
                                           IconButton(
                                             icon: const Icon(Icons.add_circle_outline),
                                             onPressed: () {
-                                              context.read<CartCubit>().updateQuantity(widget.userId, item.productId, item.quantity + 1);
+                                              context.read<CartCubit>().updateQuantity(widget.userId, item.productId, item.selectedSize, item.selectedColor, item.quantity + 1);
                                             },
                                           ),
                                         ],
@@ -192,8 +261,10 @@ class _CartScreenState extends State<CartScreen> {
                                 const SizedBox(width: 8),
                                 ElevatedButton(
                                   onPressed: () {
-                                    if (_couponController.text.isNotEmpty) {
+                                    if (_couponController.text.isNotEmpty && _selectedItemKeys.isNotEmpty) {
                                       context.read<CartCubit>().applyCoupon(_couponController.text.trim(), subTotal);
+                                    } else if (_selectedItemKeys.isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least 1 item to apply coupon.')));
                                     }
                                   },
                                   child: const Text('Apply'),
@@ -237,7 +308,7 @@ class _CartScreenState extends State<CartScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: state is CartLoading
+                              onPressed: (state is CartLoading || _selectedItemKeys.isEmpty)
                                   ? null
                                   : () {
                                       Navigator.push(
@@ -245,7 +316,7 @@ class _CartScreenState extends State<CartScreen> {
                                         MaterialPageRoute(
                                           builder: (_) => CheckoutScreen(
                                             userId: widget.userId,
-                                            cartItems: items,
+                                            cartItems: selectedItemsList,
                                             subTotal: subTotal,
                                             discountAmount: discount,
                                             totalPrice: total,
@@ -257,7 +328,7 @@ class _CartScreenState extends State<CartScreen> {
                               style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                               child: state is CartLoading
                                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text('Proceed to Checkout', style: TextStyle(fontSize: 16)),
+                                  : Text('Proceed to Checkout (${_selectedItemKeys.length})', style: const TextStyle(fontSize: 16)),
                             ),
                           ),
                         ],
@@ -270,6 +341,8 @@ class _CartScreenState extends State<CartScreen> {
           );
         },
       ),
+      );
+    },
     );
   }
 }

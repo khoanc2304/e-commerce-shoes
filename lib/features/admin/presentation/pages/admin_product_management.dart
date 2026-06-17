@@ -18,10 +18,17 @@ class AdminProductManagement extends StatefulWidget {
 class _AdminProductManagementState extends State<AdminProductManagement> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _brandController = TextEditingController();
+  String _selectedBrand = 'Nike'; // Default brand
+  final List<String> _brands = ['Nike', 'Adidas', 'Puma', 'Vans', 'Converse'];
   final _priceController = TextEditingController();
   final _descController = TextEditingController();
   final _stockController = TextEditingController();
+  
+  final List<int> _availableSizes = [38, 39, 40, 41, 42, 43, 44];
+  List<int> _selectedSizes = [39, 40, 41]; // Default selected sizes
+  
+  final List<String> _availableColors = ['Black', 'White', 'Red', 'Blue', 'Grey'];
+  List<String> _selectedColors = ['Black']; // Default color
   
   List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
@@ -31,10 +38,23 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     super.initState();
     if (widget.product != null) {
       _nameController.text = widget.product!.name;
-      _brandController.text = widget.product!.brand;
+      _selectedBrand = _brands.contains(widget.product!.brand) ? widget.product!.brand : _brands.first;
       _priceController.text = widget.product!.basePrice.toString();
       _descController.text = widget.product!.description;
       _stockController.text = widget.product!.stock.toString();
+      if (widget.product!.availableSizes.isNotEmpty) {
+        _selectedSizes = List.from(widget.product!.availableSizes);
+        for (var s in _selectedSizes) {
+          if (!_availableSizes.contains(s)) _availableSizes.add(s);
+        }
+        _availableSizes.sort();
+      }
+      if (widget.product!.colors.isNotEmpty) {
+        _selectedColors = List.from(widget.product!.colors);
+        for (var c in _selectedColors) {
+          if (!_availableColors.contains(c)) _availableColors.add(c);
+        }
+      }
     }
   }
 
@@ -47,6 +67,34 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     }
   }
 
+  Future<void> _showAddDialog(String title, TextInputType keyboardType, Function(String) onAdd) async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          autofocus: true,
+          decoration: InputDecoration(hintText: 'Enter value'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                onAdd(controller.text.trim());
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _submitProduct() {
     if (_formKey.currentState?.validate() ?? false) {
       final isEditing = widget.product != null;
@@ -55,25 +103,37 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
         return;
       }
 
+      if (_selectedSizes.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one size')));
+        return;
+      }
+
+      if (_selectedColors.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one color')));
+        return;
+      }
+
       if (isEditing) {
         final updatedProduct = widget.product!.copyWith(
           name: _nameController.text.trim(),
-          brand: _brandController.text.trim(),
+          brand: _selectedBrand,
           basePrice: double.parse(_priceController.text.trim()),
           description: _descController.text.trim(),
           stock: int.parse(_stockController.text.trim()),
+          availableSizes: _selectedSizes,
+          colors: _selectedColors,
         );
         context.read<AdminCubit>().updateProductDetails(updatedProduct);
       } else {
         final newProduct = ProductModel(
           productId: const Uuid().v4(),
           name: _nameController.text.trim(),
-          brand: _brandController.text.trim(),
+          brand: _selectedBrand,
           basePrice: double.parse(_priceController.text.trim()),
           description: _descController.text.trim(),
           images: [], // Will be populated by Cubit
-          availableSizes: [38, 39, 40, 41, 42], // Mock sizes
-          colors: ['Black', 'White'], // Mock colors
+          availableSizes: _selectedSizes,
+          colors: _selectedColors,
           stock: int.parse(_stockController.text.trim()),
           salesCount: 0,
           averageRating: 0.0,
@@ -117,10 +177,13 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                     validator: (val) => val!.isEmpty ? 'Required' : null,
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _brandController,
+                  DropdownButtonFormField<String>(
+                    value: _selectedBrand,
                     decoration: const InputDecoration(labelText: 'Brand'),
-                    validator: (val) => val!.isEmpty ? 'Required' : null,
+                    items: _brands.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedBrand = val);
+                    },
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -150,6 +213,86 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                     decoration: const InputDecoration(labelText: 'Description'),
                     maxLines: 4,
                     validator: (val) => val!.isEmpty ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Available Sizes', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _availableSizes.map<Widget>((size) {
+                      final isSelected = _selectedSizes.contains(size);
+                      return ChoiceChip(
+                        label: Text(size.toString()),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedSizes.add(size);
+                              _selectedSizes.sort();
+                            } else {
+                              _selectedSizes.remove(size);
+                            }
+                          });
+                        },
+                      );
+                    }).toList()
+                      ..add(
+                        ActionChip(
+                          label: const Text('+ Other'),
+                          onPressed: () {
+                            _showAddDialog('Add Custom Size', TextInputType.number, (val) {
+                              final size = int.tryParse(val);
+                              if (size != null && !_availableSizes.contains(size)) {
+                                setState(() {
+                                  _availableSizes.add(size);
+                                  _availableSizes.sort();
+                                  _selectedSizes.add(size);
+                                  _selectedSizes.sort();
+                                });
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Available Colors', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _availableColors.map<Widget>((color) {
+                      final isSelected = _selectedColors.contains(color);
+                      return ChoiceChip(
+                        label: Text(color),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedColors.add(color);
+                            } else {
+                              _selectedColors.remove(color);
+                            }
+                          });
+                        },
+                      );
+                    }).toList()
+                      ..add(
+                        ActionChip(
+                          label: const Text('+ Other'),
+                          onPressed: () {
+                            _showAddDialog('Add Custom Color', TextInputType.text, (val) {
+                              if (!_availableColors.contains(val)) {
+                                setState(() {
+                                  _availableColors.add(val);
+                                  _selectedColors.add(val);
+                                });
+                              }
+                            });
+                          },
+                        ),
+                      ),
                   ),
                   const SizedBox(height: 24),
                   

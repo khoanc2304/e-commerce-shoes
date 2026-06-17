@@ -35,6 +35,34 @@ class ProductCubit extends Cubit<ProductState> {
     }
   }
 
+  Future<void> searchProducts({
+    String? searchQuery,
+    List<String>? brands,
+    List<int>? sizes,
+    List<String>? colors,
+    double? minPrice,
+    double? maxPrice,
+    double? minRating,
+    String? sortBy,
+  }) async {
+    emit(ProductLoading());
+    try {
+      final products = await _productRepository.searchAndFilterProducts(
+        searchQuery: searchQuery,
+        brands: brands,
+        sizes: sizes,
+        colors: colors,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        minRating: minRating,
+        sortBy: sortBy,
+      );
+      emit(ProductsLoaded(products));
+    } catch (e) {
+      emit(ProductError(e.toString()));
+    }
+  }
+
   Future<void> loadProductReviews(ProductModel product) async {
     emit(ProductLoading());
     try {

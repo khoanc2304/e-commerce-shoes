@@ -66,6 +66,81 @@ class ProductRepository {
     }
   }
 
+  // Advanced Search & Filter locally in Dart to overcome Firestore limitations
+  Future<List<ProductModel>> searchAndFilterProducts({
+    String? searchQuery,
+    List<String>? brands,
+    List<int>? sizes,
+    List<String>? colors,
+    double? minPrice,
+    double? maxPrice,
+    double? minRating,
+    String? sortBy, // "latest", "price_asc", "price_desc", "sales"
+  }) async {
+    try {
+      // 1. Fetch all active products
+      final snapshot = await _firestore.collection('products').where('isActive', isEqualTo: true).get();
+      List<ProductModel> products = snapshot.docs
+          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+          .toList();
+
+      // 2. Local Filtering
+      if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+        final query = searchQuery.trim().toLowerCase();
+        products = products.where((p) => p.name.toLowerCase().contains(query)).toList();
+      }
+      
+      if (brands != null && brands.isNotEmpty) {
+        products = products.where((p) => brands.any((b) => b.toLowerCase() == p.brand.toLowerCase())).toList();
+      }
+      
+      if (sizes != null && sizes.isNotEmpty) {
+        products = products.where((p) => p.availableSizes.any((s) => sizes.contains(s))).toList();
+      }
+      
+      if (colors != null && colors.isNotEmpty) {
+        products = products.where((p) => p.colors.any((c) => colors.contains(c))).toList();
+      }
+      
+      if (minPrice != null) {
+        products = products.where((p) => p.basePrice >= minPrice).toList();
+      }
+      
+      if (maxPrice != null) {
+        products = products.where((p) => p.basePrice <= maxPrice).toList();
+      }
+      
+      if (minRating != null) {
+        products = products.where((p) => p.averageRating >= minRating).toList();
+      }
+
+      // 3. Local Sorting
+      if (sortBy != null) {
+        switch (sortBy) {
+          case 'latest':
+            products.sort((a, b) {
+              if (a.createdAt == null || b.createdAt == null) return 0;
+              return b.createdAt!.compareTo(a.createdAt!);
+            });
+            break;
+          case 'price_asc':
+            products.sort((a, b) => a.basePrice.compareTo(b.basePrice));
+            break;
+          case 'price_desc':
+            products.sort((a, b) => b.basePrice.compareTo(a.basePrice));
+            break;
+          case 'sales':
+            products.sort((a, b) => b.salesCount.compareTo(a.salesCount));
+            break;
+        }
+      }
+
+      return products;
+    } catch (e) {
+      throw Exception('Failed to search and filter products: $e');
+    }
+  }
+
   Future<List<ReviewModel>> getReviews(String productId) async {
     try {
       final snapshot = await _firestore

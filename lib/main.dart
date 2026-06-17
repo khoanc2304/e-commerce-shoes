@@ -22,6 +22,7 @@ import 'features/admin/presentation/cubit/admin_cubit.dart';
 
 import 'features/product/data/repositories/product_repository.dart';
 import 'features/product/presentation/cubit/product_cubit.dart';
+import 'features/product/presentation/cubit/user_activity_cubit.dart';
 
 import 'features/chat/data/repositories/chat_repository.dart';
 import 'features/chat/presentation/cubit/chat_cubit.dart';
@@ -113,6 +114,9 @@ class ShuesXApp extends StatelessWidget {
           create: (context) => ProductCubit(
             productRepository: productRepository,
           ),
+        ),
+        BlocProvider<UserActivityCubit>(
+          create: (context) => UserActivityCubit(),
         ),
         BlocProvider<ChatCubit>(
           create: (context) => ChatCubit(

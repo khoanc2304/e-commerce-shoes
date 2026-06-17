@@ -22,6 +22,59 @@ class OrderRepository {
     });
   }
 
+  Stream<List<OrderModel>> getAllOrdersStream() {
+    return _firestore
+        .collection('orders')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+          .toList();
+    });
+  }
+
+  Future<void> updateOrderStatus(String orderId, String newStatus) async {
+    if (newStatus == 'cancelled') {
+      await _firestore.runTransaction((transaction) async {
+        final orderRef = _firestore.collection('orders').doc(orderId);
+        final orderDoc = await transaction.get(orderRef);
+        
+        if (!orderDoc.exists) throw Exception("Order not found.");
+        
+        final orderData = orderDoc.data()!;
+        if (orderData['status'] == 'cancelled') return; // Already cancelled
+
+        // Restore stock
+        final items = List<dynamic>.from(orderData['items'] ?? []);
+        for (var itemData in items) {
+          final productId = itemData['productId'];
+          final quantity = itemData['quantity'] ?? 0;
+          
+          final productRef = _firestore.collection('products').doc(productId);
+          final productDoc = await transaction.get(productRef);
+          
+          if (productDoc.exists) {
+            final pData = productDoc.data()!;
+            final currentStock = pData['stock'] ?? 0;
+            final currentSales = pData['salesCount'] ?? 0;
+            
+            transaction.update(productRef, {
+              'stock': currentStock + quantity,
+              'salesCount': currentSales > quantity ? currentSales - quantity : 0,
+            });
+          }
+        }
+        
+        transaction.update(orderRef, {'status': 'cancelled'});
+      });
+    } else {
+      await _firestore.collection('orders').doc(orderId).update({
+        'status': newStatus,
+      });
+    }
+  }
+
   Future<void> executeCheckout({
     required String userId,
     required String customerName,
@@ -38,7 +91,7 @@ class OrderRepository {
 
     try {
       await _firestore.runTransaction((transaction) async {
-        // 1. Read all product documents to verify stock
+        // 1. Read all product documents to verify stock AND read cart doc
         List<DocumentSnapshot> productDocs = [];
         for (var item in cartItems) {
           final productRef = _firestore.collection('products').doc(item.productId);
@@ -56,7 +109,11 @@ class OrderRepository {
           productDocs.add(productDoc);
         }
 
-        // 2. If we reach here, all items have sufficient stock. Proceed with updates.
+        // Read Cart Document before any writes
+        final cartRef = _firestore.collection('carts').doc(userId);
+        final cartDoc = await transaction.get(cartRef);
+
+        // 2. If we reach here, all reads are done. Proceed with writes.
         
         // Update Products (decrement stock, increment sales)
         for (int i = 0; i < cartItems.length; i++) {
@@ -104,12 +161,23 @@ class OrderRepository {
 
         transaction.set(orderRef, orderModel.toMap());
 
-        // 4. Clear the User's Cart
-        final cartRef = _firestore.collection('carts').doc(userId);
-        transaction.update(cartRef, {
-          'items': [],
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+        // 4. Remove only the purchased items from the User's Cart
+        if (cartDoc.exists) {
+          final data = cartDoc.data()!;
+          List<dynamic> currentCartItems = data['items'] ?? [];
+          
+          for (var purchasedItem in cartItems) {
+            currentCartItems.removeWhere((item) => 
+                item['productId'] == purchasedItem.productId && 
+                item['selectedSize'] == purchasedItem.selectedSize &&
+                item['selectedColor'] == purchasedItem.selectedColor);
+          }
+          
+          transaction.update(cartRef, {
+            'items': currentCartItems,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       });
     } catch (e) {
       // Re-throw to handle in UI

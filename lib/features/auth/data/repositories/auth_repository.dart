@@ -36,7 +36,7 @@ class AuthRepository {
           email: user.email ?? email,
           fullName: fullName,
           avatarUrl: '',
-          role: 'user',
+          role: 'customer',
           shippingAddresses: [],
           createdAt: Timestamp.now(),
         );
@@ -102,7 +102,7 @@ class AuthRepository {
             email: user.email ?? '',
             fullName: user.displayName ?? 'Google User',
             avatarUrl: user.photoURL ?? '',
-            role: 'user',
+            role: 'customer',
             shippingAddresses: [],
             createdAt: Timestamp.now(),
           );
