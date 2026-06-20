@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart' as g_auth;
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
@@ -78,17 +79,21 @@ class AuthRepository {
 
   Future<UserModel> signInWithGoogle() async {
     try {
-      final g_auth.GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
-
-      final g_auth.GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-      final firebase_auth.OAuthCredential credential = firebase_auth.GoogleAuthProvider.credential(
-        accessToken: null,
-        idToken: googleAuth.idToken,
-      );
-
-      final userCredential = await _firebaseAuth.signInWithCredential(credential);
-      final user = userCredential.user;
+      final firebase_auth.User? user;
+      if (kIsWeb) {
+        final googleProvider = firebase_auth.GoogleAuthProvider();
+        final userCredential = await _firebaseAuth.signInWithPopup(googleProvider);
+        user = userCredential.user;
+      } else {
+        final g_auth.GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+        final g_auth.GoogleSignInAuthentication googleAuth = googleUser.authentication;
+        final firebase_auth.OAuthCredential credential = firebase_auth.GoogleAuthProvider.credential(
+          accessToken: null,
+          idToken: googleAuth.idToken,
+        );
+        final userCredential = await _firebaseAuth.signInWithCredential(credential);
+        user = userCredential.user;
+      }
 
       if (user != null) {
         // Check if user exists in Firestore

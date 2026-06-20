@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 class ImgBBService {
-  final String _apiKey = '02baba925c956ff1bac7fa88063a9a8f';
+  final String _apiKey = const String.fromEnvironment('IMGBB_API_KEY', defaultValue: '02baba925c956ff1bac7fa88063a9a8f');
   final String _uploadUrl = 'https://api.imgbb.com/1/upload';
   final Dio _dio;
 

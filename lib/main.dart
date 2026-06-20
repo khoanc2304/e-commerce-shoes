@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -26,12 +27,26 @@ import 'features/product/presentation/cubit/user_activity_cubit.dart';
 
 import 'features/chat/data/repositories/chat_repository.dart';
 import 'features/chat/presentation/cubit/chat_cubit.dart';
+import 'features/chat/presentation/cubit/ai_chat_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
-    await Firebase.initializeApp();
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: String.fromEnvironment('FIREBASE_API_KEY', defaultValue: 'AIzaSyDBfHDqUN5Vd22MUYvAo6VmJfLCRiuakQg'),
+          authDomain: 'e-commerce-shoes-2135a.firebaseapp.com',
+          projectId: 'e-commerce-shoes-2135a',
+          storageBucket: 'e-commerce-shoes-2135a.firebasestorage.app',
+          messagingSenderId: '732332326300',
+          appId: '1:732332326300:web:adfac17024c0ef5ca95c59',
+        ),
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
   } catch (e) {
     debugPrint("Firebase init failed: $e");
   }
@@ -122,6 +137,9 @@ class ShoesXApp extends StatelessWidget {
           create: (context) => ChatCubit(
             chatRepository: chatRepository,
           ),
+        ),
+        BlocProvider<AiChatCubit>(
+          create: (context) => AiChatCubit(),
         ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeMode>(
