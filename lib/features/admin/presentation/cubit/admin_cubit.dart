@@ -54,6 +54,7 @@ class AdminCubit extends Cubit<AdminState> {
       await _adminRepository.addProduct(newProduct);
       
       emit(const AdminOperationSuccess("Product created successfully!"));
+      await loadAllProducts();
     } catch (e) {
       emit(AdminError(e.toString()));
     }
@@ -86,6 +87,7 @@ class AdminCubit extends Cubit<AdminState> {
     try {
       await _adminRepository.updateProduct(product);
       emit(const AdminOperationSuccess("Product updated successfully!"));
+      await loadAllProducts();
     } catch (e) {
       emit(AdminError(e.toString()));
     }
