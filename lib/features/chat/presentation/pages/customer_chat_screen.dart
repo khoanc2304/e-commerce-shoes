@@ -10,7 +10,8 @@ import '../cubit/ai_chat_state.dart';
 import '../widgets/product_message_bubble.dart';
 
 class CustomerChatScreen extends StatefulWidget {
-  const CustomerChatScreen({Key? key}) : super(key: key);
+  final int initialIndex;
+  const CustomerChatScreen({Key? key, this.initialIndex = 0}) : super(key: key);
 
   @override
   State<CustomerChatScreen> createState() => _CustomerChatScreenState();
@@ -27,7 +28,7 @@ class _CustomerChatScreenState extends State<CustomerChatScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialIndex);
     final authState = context.read<AuthCubit>().state;
     if (authState is AuthAuthenticated) {
       context.read<ChatCubit>().loadMessages(authState.user.uid);

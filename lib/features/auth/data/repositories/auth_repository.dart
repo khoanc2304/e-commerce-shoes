@@ -16,6 +16,8 @@ class AuthRepository {
   })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance,
         _googleSignIn = googleSignIn ?? g_auth.GoogleSignIn.instance;
+        
+  bool _isGoogleSignInInitialized = false;
 
   Stream<firebase_auth.User?> get user => _firebaseAuth.authStateChanges();
 
@@ -85,7 +87,16 @@ class AuthRepository {
         final userCredential = await _firebaseAuth.signInWithPopup(googleProvider);
         user = userCredential.user;
       } else {
-        final g_auth.GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+        if (!_isGoogleSignInInitialized) {
+          await _googleSignIn.initialize(
+            serverClientId: '732332326300-bi4jgvf2qn8mb6l0rcsg5osdrdjl8j5u.apps.googleusercontent.com',
+          );
+          _isGoogleSignInInitialized = true;
+        }
+        final g_auth.GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+        if (googleUser == null) {
+          throw Exception("Google Sign In aborted by user");
+        }
         final g_auth.GoogleSignInAuthentication googleAuth = googleUser.authentication;
         final firebase_auth.OAuthCredential credential = firebase_auth.GoogleAuthProvider.credential(
           accessToken: null,

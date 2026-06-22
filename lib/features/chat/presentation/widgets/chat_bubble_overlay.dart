@@ -104,6 +104,7 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
   }
 
   void _handleDismiss() async {
+    if (_isDismissed || _dismissController.isAnimating) return;
     _pulseController.stop();
     _closeZoneController.reverse();
     await _dismissController.forward();
@@ -207,12 +208,17 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
                     setState(() => _isDragging = true);
                   },
                   onPanUpdate: (details) {
+                    if (_isDismissed || _dismissController.isAnimating) return;
                     final newPos = _position + details.delta;
                     final isNear = _isBubbleInCloseZone(size);
-                    setState(() {
-                      _position = newPos;
-                      _isNearCloseZone = isNear;
-                    });
+                    if (isNear) {
+                      _handleDismiss();
+                    } else {
+                      setState(() {
+                        _position = newPos;
+                        _isNearCloseZone = false;
+                      });
+                    }
                   },
                   onPanEnd: (_) {
                     if (_isNearCloseZone) {
@@ -238,7 +244,7 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
                       _position = Offset(snapX, snapY);
                     });
                   },
-                  onTap: () => context.go('/chat'),
+                  onTap: () => context.go('/chat', extra: 1),
                   child: AnimatedBuilder(
                     animation: Listenable.merge([_pulseScale]),
                     builder: (context, child) {
@@ -250,8 +256,8 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      width: 60,
-                      height: 60,
+                      width: 50,
+                      height: 50,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
@@ -282,11 +288,11 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
                             ? const Icon(Icons.delete_outline_rounded,
                                 key: ValueKey('delete'),
                                 color: Colors.white,
-                                size: 28)
+                                size: 24)
                             : const Icon(Icons.smart_toy_rounded,
                                 key: ValueKey('bot'),
                                 color: Colors.white,
-                                size: 30),
+                                size: 24),
                       ),
                     ),
                   ),

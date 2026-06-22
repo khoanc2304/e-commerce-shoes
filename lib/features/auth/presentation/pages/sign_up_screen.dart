@@ -36,6 +36,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  void _onGoogleSignIn() {
+    context.read<AuthCubit>().signInWithGoogle();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,7 +114,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 32),
                     if (state is AuthLoading)
                       const Center(child: CircularProgressIndicator())
-                    else
+                    else ...[
                       ElevatedButton(
                         onPressed: _onSignUp,
                         style: ElevatedButton.styleFrom(
@@ -118,6 +122,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         child: const Text('Create Account'),
                       ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _onGoogleSignIn,
+                        icon: const Icon(Icons.login),
+                        label: const Text('Sign up with Google'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
