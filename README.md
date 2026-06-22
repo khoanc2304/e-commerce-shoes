@@ -15,5 +15,11 @@ Shoes X is a mobile e-commerce application specializing in sneaker retail, built
 * **IDE & Tools:** Android Studio, Git/GitHub, Figma (UI/UX Design).
 
 ---
+How to run the project using this configuration file:
+To pass the keys securely from .env.json when building or running your Flutter project, run the command with the --dart-define-from-file parameter:
+flutter run --dart-define-from-file=.env.json
+# or for web specifically:
+flutter run -d chrome --dart-define-from-file=.env.json
+
 
 ## 🏗
