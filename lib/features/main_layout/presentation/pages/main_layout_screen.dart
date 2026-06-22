@@ -8,6 +8,7 @@ import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../chat/data/repositories/chat_repository.dart';
 import '../../../product/presentation/cubit/product_cubit.dart';
 import '../../../product/presentation/pages/home_dashboard_screen.dart';
+import '../../../chat/presentation/widgets/chat_bubble_overlay.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -40,7 +41,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     final userId = authState is AuthAuthenticated ? authState.user.uid : '';
 
     return Scaffold(
-      body: widget.navigationShell,
+      body: Stack(
+        children: [
+          widget.navigationShell,
+          const ChatBubbleOverlay(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: _goBranch,
