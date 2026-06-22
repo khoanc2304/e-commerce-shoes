@@ -87,9 +87,10 @@ class AppRouter {
               GoRoute(
                 path: '/chat',
                 builder: (context, state) {
+                  final initialIndex = state.extra is int ? state.extra as int : 0;
                   final authState = context.read<AuthCubit>().state;
                   final isAdmin = authState is AuthAuthenticated && authState.user.role == 'admin';
-                  return isAdmin ? const AdminChatHubScreen() : const CustomerChatScreen();
+                  return isAdmin ? const AdminChatHubScreen() : CustomerChatScreen(initialIndex: initialIndex);
                 },
               ),
             ],
