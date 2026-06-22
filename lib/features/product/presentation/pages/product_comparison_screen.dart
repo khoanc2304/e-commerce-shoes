@@ -1,3 +1,4 @@
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/product_model.dart';
 
@@ -18,7 +19,7 @@ class ProductComparisonScreen extends StatelessWidget {
       color: Colors.grey[200],
       child: product.images.isEmpty
           ? const Icon(Icons.image, size: 50, color: Colors.grey)
-          : Image.network(product.images.first, fit: BoxFit.cover),
+          : CustomImageView(imageUrl: product.images.first, fit: BoxFit.cover),
     );
   }
 

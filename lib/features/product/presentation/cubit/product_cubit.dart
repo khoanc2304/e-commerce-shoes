@@ -21,7 +21,7 @@ class ProductCubit extends Cubit<ProductState> {
   }) async {
     emit(ProductLoading());
     try {
-      final products = await _productRepository.getProducts(
+      final result = await _productRepository.getProducts(
         brand: brand,
         size: size,
         color: color,
@@ -29,7 +29,11 @@ class ProductCubit extends Cubit<ProductState> {
         maxPrice: maxPrice,
         sortBy: sortBy,
       );
-      emit(ProductsLoaded(products));
+      emit(ProductsLoaded(
+        result.$1,
+        hasReachedMax: result.$1.length < 10,
+        lastDocument: result.$2,
+      ));
     } catch (e) {
       emit(ProductError(e.toString()));
     }
@@ -57,9 +61,51 @@ class ProductCubit extends Cubit<ProductState> {
         minRating: minRating,
         sortBy: sortBy,
       );
-      emit(ProductsLoaded(products));
+      emit(ProductsLoaded(products, hasReachedMax: true, lastDocument: null));
     } catch (e) {
       emit(ProductError(e.toString()));
+    }
+  }
+
+  Future<void> loadMoreProducts({
+    String? brand,
+    int? size,
+    String? color,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+  }) async {
+    if (state is ProductsLoaded) {
+      final currentState = state as ProductsLoaded;
+      if (currentState.hasReachedMax) return;
+
+      try {
+        final result = await _productRepository.getProducts(
+          brand: brand,
+          size: size,
+          color: color,
+          minPrice: minPrice,
+          maxPrice: maxPrice,
+          sortBy: sortBy,
+          startAfter: currentState.lastDocument,
+        );
+
+        if (result.$1.isEmpty) {
+          emit(ProductsLoaded(
+            currentState.products,
+            hasReachedMax: true,
+            lastDocument: currentState.lastDocument,
+          ));
+        } else {
+          emit(ProductsLoaded(
+            currentState.products + result.$1,
+            hasReachedMax: result.$1.length < 10,
+            lastDocument: result.$2,
+          ));
+        }
+      } catch (e) {
+        emit(ProductError(e.toString()));
+      }
     }
   }
 

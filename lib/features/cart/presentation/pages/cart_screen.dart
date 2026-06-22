@@ -1,3 +1,4 @@
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -245,11 +246,9 @@ class _CartScreenState extends State<CartScreen> {
                                                   borderRadius: BorderRadius.circular(12),
                                                   child: item.image.isEmpty
                                                       ? const Icon(Icons.image, color: Colors.grey)
-                                                      : Image.network(
-                                                          item.image,
+                                                      : CustomImageView(
+                                                          imageUrl: item.image,
                                                           fit: BoxFit.contain,
-                                                          errorBuilder: (context, error, stackTrace) =>
-                                                              const Icon(Icons.image_not_supported, color: Colors.grey),
                                                         ),
                                                 ),
                                               ),

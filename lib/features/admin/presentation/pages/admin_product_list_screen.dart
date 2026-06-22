@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
+import '../../../../core/widgets/custom_image_view.dart';
 
 class AdminProductListScreen extends StatefulWidget {
   const AdminProductListScreen({Key? key}) : super(key: key);
@@ -12,10 +13,24 @@ class AdminProductListScreen extends StatefulWidget {
 }
 
 class _AdminProductListScreenState extends State<AdminProductListScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     context.read<AdminCubit>().loadAllProducts();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        context.read<AdminCubit>().loadMoreProducts();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -57,8 +72,12 @@ class _AdminProductListScreenState extends State<AdminProductListScreen> {
             return RefreshIndicator(
               onRefresh: () => context.read<AdminCubit>().loadAllProducts(),
               child: ListView.builder(
-                itemCount: products.length,
+                controller: _scrollController,
+                itemCount: products.length + (state.hasReachedMax ? 0 : 1),
                 itemBuilder: (context, index) {
+                  if (index == products.length) {
+                    return const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()));
+                  }
                   final product = products[index];
                   return Card(
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -68,7 +87,7 @@ class _AdminProductListScreenState extends State<AdminProductListScreen> {
                         height: 50,
                         color: Colors.grey[200],
                         child: product.images.isNotEmpty
-                            ? Image.network(product.images.first, fit: BoxFit.cover)
+                            ? CustomImageView(imageUrl: product.images.first, fit: BoxFit.cover)
                             : const Icon(Icons.image),
                       ),
                       title: Text(product.name, style: TextStyle(

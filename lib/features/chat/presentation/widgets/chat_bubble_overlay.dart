@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../product/presentation/cubit/user_activity_cubit.dart';
+import '../../../product/presentation/cubit/user_activity_state.dart';
 
 class ChatBubbleOverlay extends StatefulWidget {
   const ChatBubbleOverlay({Key? key}) : super(key: key);
@@ -89,7 +91,8 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
     super.didChangeDependencies();
     if (!_initialized) {
       final size = MediaQuery.of(context).size;
-      _position = Offset(size.width - 76, size.height - 200);
+      // Initial position higher to avoid overlapping FAB, size shrunk to ~80%
+      _position = Offset(size.width - 65, size.height - 290);
       _initialized = true;
     }
   }
@@ -131,7 +134,11 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
     if (_isDismissed) return const SizedBox.shrink();
 
     final authState = context.watch<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return const SizedBox.shrink();
+    final showChatbot = authState is AuthAuthenticated;
+    final userActivityState = context.watch<UserActivityCubit>().state;
+    final showCompare = userActivityState.compareList.isNotEmpty;
+
+    if (!showChatbot && !showCompare) return const SizedBox.shrink();
 
     final size = MediaQuery.of(context).size;
     final closeZoneRect = _getCloseZoneRect(size);
@@ -229,13 +236,12 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
                     _closeZoneController.reverse();
                     _pulseController.repeat(reverse: true);
 
-                    // Snap to nearest edge
                     final snapX = _position.dx < size.width / 2
                         ? 16.0
-                        : size.width - 76.0;
+                        : size.width - 65.0;
                     double snapY = _position.dy.clamp(
                       MediaQuery.of(context).padding.top + 20,
-                      size.height - kBottomNavigationBarHeight - 90,
+                      size.height - kBottomNavigationBarHeight - 170,
                     );
 
                     setState(() {
@@ -244,57 +250,125 @@ class _ChatBubbleOverlayState extends State<ChatBubbleOverlay>
                       _position = Offset(snapX, snapY);
                     });
                   },
-                  onTap: () => context.go('/chat', extra: 1),
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([_pulseScale]),
-                    builder: (context, child) {
-                      final scale = _isDragging ? 1.12 : _pulseScale.value;
-                      return Transform.scale(
-                        scale: scale,
-                        child: child,
-                      );
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: _isNearCloseZone
-                              ? [Colors.red.shade400, Colors.red.shade700]
-                              : [
-                                  const Color(0xFF667EEA),
-                                  const Color(0xFF764BA2),
-                                ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (_isNearCloseZone
-                                    ? Colors.red
-                                    : const Color(0xFF667EEA))
-                                .withOpacity(_isDragging ? 0.6 : 0.4),
-                            blurRadius: _isDragging ? 20 : 12,
-                            spreadRadius: _isDragging ? 4 : 0,
-                            offset: const Offset(0, 4),
+                  onTap: () {
+                    if (showChatbot) context.go('/chat', extra: 1);
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (showCompare) ...[
+                        GestureDetector(
+                          onTap: () {
+                            if (userActivityState.compareList.length == 2) {
+                              context.push('/compare', extra: {
+                                'product1': userActivityState.compareList[0],
+                                'product2': userActivityState.compareList[1],
+                              });
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please select one more product to compare.')),
+                              );
+                            }
+                          },
+                          child: Container(
+                            width: 45,
+                            height: 45,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: userActivityState.compareList.length == 2 
+                                ? Theme.of(context).primaryColor 
+                                : Colors.orange,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                const Icon(Icons.compare_arrows, color: Colors.white, size: 20),
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      userActivityState.compareList.length.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: _isNearCloseZone
-                            ? const Icon(Icons.delete_outline_rounded,
-                                key: ValueKey('delete'),
-                                color: Colors.white,
-                                size: 24)
-                            : const Icon(Icons.smart_toy_rounded,
-                                key: ValueKey('bot'),
-                                color: Colors.white,
-                                size: 24),
-                      ),
-                    ),
+                        ),
+                        if (showChatbot) const SizedBox(height: 12),
+                      ],
+                      if (showChatbot)
+                        AnimatedBuilder(
+                          animation: Listenable.merge([_pulseScale]),
+                          builder: (context, child) {
+                            final scale = _isDragging ? 1.12 : _pulseScale.value;
+                            return Transform.scale(
+                              scale: scale,
+                              child: child,
+                            );
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 45,
+                            height: 45,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: _isNearCloseZone
+                                    ? [Colors.red.shade400, Colors.red.shade700]
+                                    : [
+                                        const Color(0xFF667EEA),
+                                        const Color(0xFF764BA2),
+                                      ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_isNearCloseZone
+                                          ? Colors.red
+                                          : const Color(0xFF667EEA))
+                                      .withOpacity(_isDragging ? 0.6 : 0.4),
+                                  blurRadius: _isDragging ? 20 : 12,
+                                  spreadRadius: _isDragging ? 4 : 0,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: _isNearCloseZone
+                                  ? const Icon(Icons.delete_outline_rounded,
+                                      key: ValueKey('delete'),
+                                      color: Colors.white,
+                                      size: 20)
+                                  : const Icon(Icons.smart_toy_rounded,
+                                      key: ValueKey('bot'),
+                                      color: Colors.white,
+                                      size: 20),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

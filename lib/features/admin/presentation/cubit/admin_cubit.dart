@@ -62,10 +62,43 @@ class AdminCubit extends Cubit<AdminState> {
   Future<void> loadAllProducts() async {
     emit(AdminLoading());
     try {
-      final products = await _adminRepository.getAllProducts();
-      emit(AdminProductsLoaded(products));
+      final result = await _adminRepository.getAllProducts();
+      emit(AdminProductsLoaded(
+        result.$1,
+        hasReachedMax: result.$1.length < 15,
+        lastDocument: result.$2,
+      ));
     } catch (e) {
       emit(AdminError(e.toString()));
+    }
+  }
+
+  Future<void> loadMoreProducts() async {
+    if (state is AdminProductsLoaded) {
+      final currentState = state as AdminProductsLoaded;
+      if (currentState.hasReachedMax) return;
+
+      try {
+        final result = await _adminRepository.getAllProducts(
+          startAfter: currentState.lastDocument,
+        );
+
+        if (result.$1.isEmpty) {
+          emit(AdminProductsLoaded(
+            currentState.products,
+            hasReachedMax: true,
+            lastDocument: currentState.lastDocument,
+          ));
+        } else {
+          emit(AdminProductsLoaded(
+            currentState.products + result.$1,
+            hasReachedMax: result.$1.length < 15,
+            lastDocument: result.$2,
+          ));
+        }
+      } catch (e) {
+        emit(AdminError(e.toString()));
+      }
     }
   }
 
@@ -75,8 +108,12 @@ class AdminCubit extends Cubit<AdminState> {
       final updatedProduct = product.copyWith(isActive: !product.isActive);
       await _adminRepository.updateProduct(updatedProduct);
       // Reload products
-      final products = await _adminRepository.getAllProducts();
-      emit(AdminProductsLoaded(products));
+      final result = await _adminRepository.getAllProducts();
+      emit(AdminProductsLoaded(
+        result.$1,
+        hasReachedMax: result.$1.length < 15,
+        lastDocument: result.$2,
+      ));
     } catch (e) {
       emit(AdminError(e.toString()));
     }

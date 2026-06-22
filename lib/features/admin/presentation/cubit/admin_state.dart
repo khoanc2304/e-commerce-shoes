@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../orders/data/models/order_model.dart';
 import '../../../product/data/models/product_model.dart';
 
@@ -25,11 +26,17 @@ class AdminAnalyticsLoaded extends AdminState {
 
 class AdminProductsLoaded extends AdminState {
   final List<ProductModel> products;
+  final bool hasReachedMax;
+  final DocumentSnapshot? lastDocument;
 
-  const AdminProductsLoaded(this.products);
+  const AdminProductsLoaded(
+    this.products, {
+    this.hasReachedMax = false,
+    this.lastDocument,
+  });
 
   @override
-  List<Object?> get props => [products];
+  List<Object?> get props => [products, hasReachedMax, lastDocument];
 }
 
 class AdminOperationSuccess extends AdminState {

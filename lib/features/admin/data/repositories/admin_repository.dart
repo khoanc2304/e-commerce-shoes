@@ -27,16 +27,24 @@ class AdminRepository {
   }
 
   // --- Product Management ---
-  Future<List<ProductModel>> getAllProducts() async {
+  Future<(List<ProductModel>, DocumentSnapshot?)> getAllProducts({int limit = 15, DocumentSnapshot? startAfter}) async {
     try {
-      final snapshot = await _firestore
+      var query = _firestore
           .collection('products')
           .orderBy('createdAt', descending: true)
-          .get();
+          .limit(limit);
 
-      return snapshot.docs
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snapshot = await query.get();
+
+      final products = snapshot.docs
           .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
           .toList();
+      final lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+      return (products, lastDoc);
     } catch (e) {
       throw Exception('Failed to fetch all products: $e');
     }

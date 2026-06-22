@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -31,6 +33,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   bool _isLoadingReviews = true;
   List<ReviewModel> _reviews = [];
+  int _visibleReviewsCount = 5;
   
   double _inlineRating = 0.0;
   final TextEditingController _inlineCommentController = TextEditingController();
@@ -439,11 +442,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ? const Center(child: Icon(Icons.image, size: 100, color: Colors.grey))
                       : Hero(
                           tag: 'product_img_${product.productId}',
-                          child: Image.network(
-                            product.images.first, 
+                          child: CustomImageView(
+                            imageUrl: product.images.first, 
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey)),
                           ),
                         ),
                 ),
@@ -711,7 +712,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           : ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _reviews.length,
+                              itemCount: math.min(_reviews.length, _visibleReviewsCount),
                               itemBuilder: (context, index) {
                                 final review = _reviews[index];
                                 return BlocBuilder<AuthCubit, AuthState>(
@@ -815,9 +816,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 );
                               },
                             ),
+                            if (_reviews.length > _visibleReviewsCount)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                child: Center(
+                                  child: TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _visibleReviewsCount += 5;
+                                      });
+                                    },
+                                    child: const Text('Xem thêm'),
+                                  ),
+                                ),
+                              ),
                 ],
               ),
             ),
+            _buildSimilarProducts(),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -851,19 +868,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   Text(
                     'Quantity', 
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)
                   ),
                   Container(
+                    height: 36,
                     decoration: BoxDecoration(
                       color: Theme.of(context).brightness == Brightness.light
                           ? const Color(0xFFF5F5F9)
                           : const Color(0xFF1C1C2A),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.remove, size: 16, color: Theme.of(context).colorScheme.onBackground),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          icon: Icon(Icons.remove, size: 14, color: Theme.of(context).colorScheme.onBackground),
                           onPressed: () {
                             if (_quantity > 1) setState(() => _quantity--);
                           },
@@ -872,11 +892,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           child: Text(
                             '$_quantity', 
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.add, size: 16, color: Theme.of(context).colorScheme.onBackground),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          icon: Icon(Icons.add, size: 14, color: Theme.of(context).colorScheme.onBackground),
                           onPressed: () {
                             setState(() => _quantity++);
                           },
@@ -886,10 +908,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: () {
                     if (_selectedSize == null) {
@@ -939,31 +961,119 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
         ),
       ),
-      floatingActionButton: BlocBuilder<UserActivityCubit, UserActivityState>(
-        builder: (context, state) {
-          if (state.compareList.isEmpty) return const SizedBox.shrink();
-          
-          return FloatingActionButton(
-            onPressed: () {
-              if (state.compareList.length == 2) {
-                context.push('/compare', extra: {
-                  'product1': state.compareList[0],
-                  'product2': state.compareList[1],
-                });
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select one more product to compare.')),
-                );
-              }
-            },
-            backgroundColor: state.compareList.length == 2 ? Theme.of(context).primaryColor : Colors.orange,
-            child: Badge(
-              label: Text(state.compareList.length.toString()),
-              child: const Icon(Icons.compare_arrows),
-            ),
+    );
+  }
+
+  Widget _buildSimilarProducts() {
+    return BlocBuilder<ProductCubit, ProductState>(
+      builder: (context, state) {
+        if (state is ProductsLoaded) {
+          final similarProducts = state.products.where((p) {
+            if (p.productId == widget.product.productId) return false;
+            final priceDiff = (p.basePrice - widget.product.basePrice).abs() / widget.product.basePrice;
+            return p.brand.toLowerCase() == widget.product.brand.toLowerCase() || priceDiff <= 0.2;
+          }).toList();
+
+          if (similarProducts.isEmpty) return const SizedBox.shrink();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Sản phẩm tương tự',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 280,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: similarProducts.length,
+                  itemBuilder: (context, index) {
+                    final p = similarProducts[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProductDetailScreen(product: p),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 160,
+                        margin: const EdgeInsets.only(right: 16),
+                        child: Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                  ),
+                                  child: p.images.isEmpty
+                                      ? const Center(child: Icon(Icons.image, size: 50, color: Colors.grey))
+                                      : ClipRRect(
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                          child: CustomImageView(imageUrl: p.images.first, fit: BoxFit.cover, width: double.infinity),
+                                        ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      p.brand.toUpperCase(),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 10,
+                                        color: Theme.of(context).primaryColor,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      p.name,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      '\$${p.basePrice.toStringAsFixed(2)}',
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           );
-        },
-      ),
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 }

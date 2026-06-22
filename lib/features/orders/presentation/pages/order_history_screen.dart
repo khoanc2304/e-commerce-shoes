@@ -1,3 +1,4 @@
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -47,7 +48,7 @@ class OrderHistoryScreen extends StatelessWidget {
                       Container(
                         width: 40, height: 40,
                         color: Colors.grey[200],
-                        child: item.image.isEmpty ? const Icon(Icons.image, size: 20) : Image.network(item.image, fit: BoxFit.cover),
+                        child: item.image.isEmpty ? const Icon(Icons.image, size: 20) : CustomImageView(imageUrl: item.image, fit: BoxFit.cover),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
