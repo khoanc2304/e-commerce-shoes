@@ -172,4 +172,30 @@ class AuthRepository {
       throw Exception(e.toString());
     }
   }
+
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user != null && user.email != null) {
+        // Re-authenticate user
+        final credential = firebase_auth.EmailAuthProvider.credential(
+          email: user.email!,
+          password: currentPassword,
+        );
+        await user.reauthenticateWithCredential(credential);
+        
+        // Update password
+        await user.updatePassword(newPassword);
+      } else {
+        throw Exception("No authenticated user found");
+      }
+    } catch (e) {
+      if (e is firebase_auth.FirebaseAuthException) {
+        if (e.code == 'wrong-password') {
+          throw Exception("Current password is incorrect.");
+        }
+      }
+      throw Exception(e.toString());
+    }
+  }
 }

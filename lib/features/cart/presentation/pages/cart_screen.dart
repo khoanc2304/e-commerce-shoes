@@ -9,6 +9,9 @@ import 'checkout_screen.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import 'package:go_router/go_router.dart';
+import '../../../product/presentation/cubit/product_cubit.dart';
+import '../../../product/presentation/cubit/product_state.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -206,9 +209,21 @@ class _CartScreenState extends State<CartScreen> {
                                         isOutOfStock = stock < item.quantity;
                                       }
 
-                                      return Card(
-                                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        child: Padding(
+                                      return GestureDetector(
+                                        onTap: () {
+                                          final productState = context.read<ProductCubit>().state;
+                                          if (productState is ProductsLoaded) {
+                                            try {
+                                              final product = productState.products.firstWhere((p) => p.productId == item.productId);
+                                              context.push('/home/product', extra: product);
+                                            } catch (e) {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product details not available')));
+                                            }
+                                          }
+                                        },
+                                        child: Card(
+                                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          child: Padding(
                                           padding: const EdgeInsets.all(12.0),
                                           child: Row(
                                             children: [
@@ -347,6 +362,7 @@ class _CartScreenState extends State<CartScreen> {
                                               ),
                                             ],
                                           ),
+                                        ),
                                         ),
                                       );
                                     }

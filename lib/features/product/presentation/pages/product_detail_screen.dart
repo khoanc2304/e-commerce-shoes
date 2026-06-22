@@ -749,13 +749,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                   Row(
                                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      Text(
-                                                        review.userName, 
-                                                        style: TextStyle(
-                                                          fontWeight: FontWeight.bold, 
-                                                          color: Theme.of(context).colorScheme.onBackground,
+                                                      Expanded(
+                                                        child: Text(
+                                                          review.userName, 
+                                                          style: TextStyle(
+                                                            fontWeight: FontWeight.bold, 
+                                                            color: Theme.of(context).colorScheme.onBackground,
+                                                          ),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
                                                         ),
                                                       ),
+                                                      const SizedBox(width: 8),
                                                       GestureDetector(
                                                         onTap: isMyReview ? () => _showEditRatingModal(context, review, authState.user.uid, authState.user.fullName) : null,
                                                         child: Container(
@@ -1002,12 +1007,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     final p = similarProducts[index];
                     return GestureDetector(
                       onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ProductDetailScreen(product: p),
-                          ),
-                        );
+                        context.push('/home/product', extra: p);
                       },
                       child: Container(
                         width: 160,

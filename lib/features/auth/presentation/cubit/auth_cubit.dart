@@ -98,6 +98,35 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> updateProfileInfo(String fullName, String phoneNumber) async {
+    if (state is AuthAuthenticated) {
+      final currentUser = (state as AuthAuthenticated).user;
+      emit(AuthLoading());
+      try {
+        final updatedUser = currentUser.copyWith(fullName: fullName, phoneNumber: phoneNumber);
+        await _authRepository.updateUserProfile(updatedUser);
+        emit(AuthAuthenticated(updatedUser));
+      } catch (e) {
+        emit(AuthError(e.toString()));
+        emit(AuthAuthenticated(currentUser));
+      }
+    }
+  }
+
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    if (state is AuthAuthenticated) {
+      final currentUser = (state as AuthAuthenticated).user;
+      emit(AuthLoading());
+      try {
+        await _authRepository.changePassword(currentPassword, newPassword);
+        emit(AuthAuthenticated(currentUser));
+      } catch (e) {
+        emit(AuthError(e.toString()));
+        emit(AuthAuthenticated(currentUser));
+      }
+    }
+  }
+
   Future<void> uploadAvatar(File imageFile) async {
     if (state is AuthAuthenticated) {
       final currentUser = (state as AuthAuthenticated).user;

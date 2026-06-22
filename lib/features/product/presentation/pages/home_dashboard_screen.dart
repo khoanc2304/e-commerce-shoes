@@ -461,7 +461,7 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         crossAxisCount: 2,
                         mainAxisSpacing: 18,
                         crossAxisSpacing: 18,
-                        childAspectRatio: 0.72,
+                        childAspectRatio: 0.65,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
