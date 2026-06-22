@@ -1,3 +1,4 @@
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -466,7 +467,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                               borderRadius: BorderRadius.circular(8),
                                               child: item.image.isEmpty
                                                   ? const Icon(Icons.image, size: 20)
-                                                  : Image.network(item.image, fit: BoxFit.contain),
+                                                  : CustomImageView(imageUrl: item.image, fit: BoxFit.contain),
                                             ),
                                           ),
                                           const SizedBox(width: 12),

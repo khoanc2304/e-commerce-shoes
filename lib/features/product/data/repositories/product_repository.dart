@@ -20,13 +20,15 @@ class ProductRepository {
     }
   }
 
-  Future<List<ProductModel>> getProducts({
+  Future<(List<ProductModel>, DocumentSnapshot?)> getProducts({
     String? brand,
     int? size,
     String? color,
     double? minPrice,
     double? maxPrice,
     String? sortBy, // "latest", "price_asc", "price_desc", "sales"
+    int limit = 10,
+    DocumentSnapshot? startAfter,
   }) async {
     try {
       Query query = _firestore.collection('products').where('isActive', isEqualTo: true);
@@ -68,11 +70,20 @@ class ProductRepository {
         }
       }
 
+      query = query.limit(limit);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
       final snapshot = await query.get();
-      return snapshot.docs
+      final products = snapshot.docs
           .map((doc) => ProductModel.fromMap(
               doc.data() as Map<String, dynamic>, doc.id))
           .toList();
+      
+      final lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+      return (products, lastDoc);
     } catch (e) {
       throw Exception('Failed to fetch products: $e');
     }

@@ -18,6 +18,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -28,6 +29,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   void _onSignIn() {
     if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _errorMessage = null);
       context.read<AuthCubit>().signInWithEmail(
             _emailController.text.trim(),
             _passwordController.text.trim(),
@@ -40,16 +42,72 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _onForgotPassword() {
-    if (_emailController.text.isNotEmpty) {
-      context.read<AuthCubit>().resetPassword(_emailController.text.trim());
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent if account exists')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email first')),
-      );
+    final resetEmailController = TextEditingController(text: _emailController.text);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Forgot Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter your email to receive a password reset link.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: resetEmailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final email = resetEmailController.text.trim();
+              if (email.isNotEmpty) {
+                context.read<AuthCubit>().resetPassword(email);
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password reset link sent to your email.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a valid email')),
+                );
+              }
+            },
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getErrorMessage(String error) {
+    final lowerError = error.toLowerCase();
+    if (lowerError.contains('invalid-credential') || 
+        lowerError.contains('user-not-found') || 
+        lowerError.contains('wrong-password') || 
+        lowerError.contains('incorrect')) {
+      return 'Incorrect email or password. Please try again.';
     }
+    if (lowerError.contains('invalid-email')) {
+      return 'The email address is badly formatted.';
+    }
+    if (lowerError.contains('too-many-requests')) {
+      return 'Too many attempts. Please try again later.';
+    }
+    return error.replaceAll('Exception: ', '');
   }
 
   @override
@@ -59,9 +117,9 @@ class _SignInScreenState extends State<SignInScreen> {
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            setState(() {
+              _errorMessage = _getErrorMessage(state.message);
+            });
           } else if (state is AuthAuthenticated) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Welcome back, ${state.user.fullName}')),
@@ -79,9 +137,31 @@ class _SignInScreenState extends State<SignInScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 40),
                     const Icon(Icons.shopping_bag, size: 80, color: Colors.blue),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    if (_errorMessage != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.withOpacity(0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     TextFormField(
                       controller: _emailController,
                       decoration: const InputDecoration(

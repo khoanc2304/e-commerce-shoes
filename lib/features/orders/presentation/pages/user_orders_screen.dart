@@ -1,3 +1,4 @@
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/order_cubit.dart';
@@ -152,7 +153,7 @@ class UserOrdersScreen extends StatelessWidget {
                         width: 50,
                         height: 50,
                         color: Colors.grey[200],
-                        child: item.image.isNotEmpty ? Image.network(item.image, fit: BoxFit.cover) : const Icon(Icons.image),
+                        child: item.image.isNotEmpty ? CustomImageView(imageUrl: item.image, fit: BoxFit.cover) : const Icon(Icons.image),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

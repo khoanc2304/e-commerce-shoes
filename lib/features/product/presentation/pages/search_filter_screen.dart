@@ -1,3 +1,4 @@
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -5,6 +6,9 @@ import 'package:permission_handler/permission_handler.dart';
 import '../cubit/product_cubit.dart';
 import '../cubit/product_state.dart';
 import 'product_detail_screen.dart';
+import '../cubit/user_activity_cubit.dart';
+import '../cubit/user_activity_state.dart';
+import 'package:go_router/go_router.dart';
 
 class SearchFilterScreen extends StatefulWidget {
   const SearchFilterScreen({Key? key}) : super(key: key);
@@ -406,7 +410,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
                       crossAxisCount: 2,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.7,
+                      childAspectRatio: 0.65,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
@@ -436,7 +440,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
                                       ? const Center(child: Icon(Icons.image, size: 50, color: Colors.grey))
                                       : ClipRRect(
                                           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                          child: Image.network(product.images.first, fit: BoxFit.cover, width: double.infinity),
+                                          child: CustomImageView(imageUrl: product.images.first, fit: BoxFit.cover, width: double.infinity),
                                         ),
                                 ),
                               ),
@@ -459,6 +463,32 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
                                         const Icon(Icons.star, size: 14, color: Colors.orange),
                                         Text('${product.averageRating.toStringAsFixed(1)} (${product.reviewCount})', style: const TextStyle(fontSize: 12)),
                                       ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    GestureDetector(
+                                      onTap: () {
+                                        context.read<UserActivityCubit>().toggleCompare(product);
+                                      },
+                                      child: BlocBuilder<UserActivityCubit, UserActivityState>(
+                                        builder: (context, state) {
+                                          final isComparing = state.compareList.any((p) => p.productId == product.productId);
+                                          return Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(isComparing ? Icons.check : Icons.add, size: 14, color: isComparing ? Colors.green : Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                isComparing ? 'Đã so sánh' : 'So sánh',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: isComparing ? Colors.green : Colors.grey,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
                                     )
                                   ],
                                 ),

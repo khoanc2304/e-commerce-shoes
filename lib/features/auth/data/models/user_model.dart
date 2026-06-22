@@ -64,6 +64,7 @@ class UserModel {
   final String uid;
   final String email;
   final String fullName;
+  final String phoneNumber;
   final String avatarUrl;
   final String role; // "customer" | "admin"
   final List<ShippingAddress> shippingAddresses;
@@ -73,6 +74,7 @@ class UserModel {
     required this.uid,
     required this.email,
     required this.fullName,
+    this.phoneNumber = '',
     required this.avatarUrl,
     required this.role,
     required this.shippingAddresses,
@@ -84,6 +86,7 @@ class UserModel {
       'uid': uid,
       'email': email,
       'fullName': fullName,
+      'phoneNumber': phoneNumber,
       'avatarUrl': avatarUrl,
       'role': role,
       'shippingAddresses': shippingAddresses.map((x) => x.toMap()).toList(),
@@ -96,6 +99,7 @@ class UserModel {
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
       fullName: map['fullName'] ?? '',
+      phoneNumber: map['phoneNumber'] ?? '',
       avatarUrl: map['avatarUrl'] ?? '',
       role: map['role'] ?? 'customer',
       shippingAddresses: map['shippingAddresses'] != null
@@ -111,6 +115,7 @@ class UserModel {
     String? uid,
     String? email,
     String? fullName,
+    String? phoneNumber,
     String? avatarUrl,
     String? role,
     List<ShippingAddress>? shippingAddresses,
@@ -120,6 +125,7 @@ class UserModel {
       uid: uid ?? this.uid,
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       role: role ?? this.role,
       shippingAddresses: shippingAddresses ?? this.shippingAddresses,

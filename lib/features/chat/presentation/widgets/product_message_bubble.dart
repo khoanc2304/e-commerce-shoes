@@ -1,3 +1,4 @@
+import '../../../../core/widgets/custom_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../features/product/data/repositories/product_repository.dart';
@@ -69,12 +70,11 @@ class ProductMessageBubble extends StatelessWidget {
             if (imageUrl.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl,
+                child: CustomImageView(
+                  imageUrl: imageUrl,
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(height: 120, color: Colors.grey[200], child: const Icon(Icons.image)),
                 ),
               )
             else

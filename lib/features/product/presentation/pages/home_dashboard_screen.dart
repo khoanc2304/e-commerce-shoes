@@ -10,6 +10,7 @@ import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../../chat/data/repositories/chat_repository.dart';
 import 'product_detail_screen.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/custom_image_view.dart';
 
 final GlobalKey<HomeDashboardScreenState> homeDashboardKey = GlobalKey<HomeDashboardScreenState>();
 
@@ -23,6 +24,7 @@ class HomeDashboardScreen extends StatefulWidget {
 class HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final List<String> _brands = ['All', 'Nike', 'Adidas', 'Puma', 'Vans', 'Converse'];
   String _selectedBrand = 'All';
+  final ScrollController _scrollController = ScrollController();
 
   final List<String> _banners = [
     'https://imgs.search.brave.com/ot_sX4oy2xaQQjAZXYyb8NxAsk_K55DfyOl7McCq8tY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/cHNkLWNhby1jYXAv/Ym8tc3V1LXRhcC1n/aWF5LW1vaS1tYXUt/YmFubmVyLXRyYW5n/LWJpYS1mYWNlYm9v/ay1kb2MtcXV5ZW4t/dHJlbi1tYW5nLXhh/LWhvaV80ODQ2Mjct/MjAwLmpwZz9zZW10/PWFpc19oeWJyaWQm/dz03NDAmcT04MA',
@@ -41,6 +43,20 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (authState is AuthAuthenticated) {
       context.read<UserActivityCubit>().loadRecentlyViewed(authState.user.uid);
     }
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        context.read<ProductCubit>().loadMoreProducts(
+          brand: _selectedBrand == 'All' ? null : _selectedBrand,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void fetchProducts() {
@@ -84,6 +100,7 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
             fetchProducts();
           },
           child: CustomScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             slivers: [
             // Header chào mừng cao cấp
@@ -231,8 +248,8 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(24),
-                            child: Image.network(
-                              url,
+                            child: CustomImageView(
+                              imageUrl: url,
                               fit: BoxFit.cover,
                               width: MediaQuery.of(context).size.width,
                             ),
@@ -304,11 +321,9 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                           child: ClipRRect(
                                             borderRadius: BorderRadius.circular(20),
                                             child: product.images.isNotEmpty
-                                                ? Image.network(
-                                                    product.images.first,
+                                                ? CustomImageView(
+                                                    imageUrl: product.images.first,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stackTrace) =>
-                                                        const Icon(Icons.image_not_supported, size: 24, color: Colors.grey),
                                                   )
                                                 : const Icon(Icons.image, color: Colors.grey),
                                           ),
@@ -446,7 +461,7 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         crossAxisCount: 2,
                         mainAxisSpacing: 18,
                         crossAxisSpacing: 18,
-                        childAspectRatio: 0.72,
+                        childAspectRatio: 0.65,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -485,12 +500,10 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                               ? const Center(child: Icon(Icons.image, size: 40, color: Colors.grey))
                                               : ClipRRect(
                                                   borderRadius: BorderRadius.circular(20),
-                                                  child: Image.network(
-                                                    product.images.first, 
+                                                  child: CustomImageView(
+                                                    imageUrl: product.images.first, 
                                                     fit: BoxFit.cover, 
                                                     width: double.infinity,
-                                                    errorBuilder: (context, error, stackTrace) =>
-                                                        const Center(child: Icon(Icons.image_not_supported, color: Colors.grey)),
                                                   ),
                                                 ),
                                         ),
@@ -600,6 +613,32 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                               ],
                                             ),
                                           ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        GestureDetector(
+                                          onTap: () {
+                                            context.read<UserActivityCubit>().toggleCompare(product);
+                                          },
+                                          child: BlocBuilder<UserActivityCubit, UserActivityState>(
+                                            builder: (context, state) {
+                                              final isComparing = state.compareList.any((p) => p.productId == product.productId);
+                                              return Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(isComparing ? Icons.check : Icons.add, size: 14, color: isComparing ? Colors.green : Colors.grey),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    isComparing ? 'Đã so sánh' : 'So sánh',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: isComparing ? Colors.green : Colors.grey,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
                                         )
                                       ],
                                     ),
@@ -620,40 +659,6 @@ class HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ],
         ),
       ),
-      ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          BlocBuilder<UserActivityCubit, UserActivityState>(
-            builder: (context, state) {
-              if (state.compareList.isEmpty) return const SizedBox.shrink();
-              
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: FloatingActionButton(
-                  heroTag: 'compare_fab',
-                  onPressed: () {
-                    if (state.compareList.length == 2) {
-                      context.push('/compare', extra: {
-                        'product1': state.compareList[0],
-                        'product2': state.compareList[1],
-                      });
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please select one more product to compare.')),
-                      );
-                    }
-                  },
-                  backgroundColor: state.compareList.length == 2 ? Theme.of(context).primaryColor : Colors.orange,
-                  child: Badge(
-                    label: Text(state.compareList.length.toString()),
-                    child: const Icon(Icons.compare_arrows),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }

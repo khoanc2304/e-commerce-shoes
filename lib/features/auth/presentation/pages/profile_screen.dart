@@ -38,6 +38,159 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showEditProfileDialog(BuildContext context, UserModel user) {
+    final nameController = TextEditingController(text: user.fullName);
+    final phoneController = TextEditingController(text: user.phoneNumber);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: TextEditingController(text: user.email),
+              decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+              readOnly: true,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone)),
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<AuthCubit>().updateProfileInfo(nameController.text.trim(), phoneController.text.trim());
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool isLoading = false;
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Change Password'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: currentPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureCurrent ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => obscureCurrent = !obscureCurrent),
+                    ),
+                  ),
+                  obscureText: obscureCurrent,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => obscureNew = !obscureNew),
+                    ),
+                  ),
+                  obscureText: obscureNew,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => obscureConfirm = !obscureConfirm),
+                    ),
+                  ),
+                  obscureText: obscureConfirm,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final currentPwd = currentPasswordController.text;
+                        final newPwd = newPasswordController.text;
+                        final confirmPwd = confirmPasswordController.text;
+
+                        if (currentPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+                          return;
+                        }
+                        if (newPwd != confirmPwd) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('New passwords do not match')));
+                          return;
+                        }
+                        if (newPwd.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('New password must be at least 6 characters')));
+                          return;
+                        }
+
+                        setState(() => isLoading = true);
+                        try {
+                          await context.read<AuthCubit>().changePassword(currentPwd, newPwd);
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed successfully!'), backgroundColor: Colors.green));
+                          }
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            setState(() => isLoading = false);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}'), backgroundColor: Colors.red));
+                          }
+                        }
+                      },
+                child: isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,19 +254,41 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      user.fullName,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                      textAlign: TextAlign.center,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          user.fullName,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
+                          onPressed: () => _showEditProfileDialog(context, user),
+                        ),
+                      ],
                     ),
                     Text(
                       user.email,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.grey,
-                          ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),
+                    if (user.phoneNumber.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          user.phoneNumber,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     const SizedBox(height: 32),
+                    ListTile(
+                      leading: const Icon(Icons.lock_outline, color: Colors.orange),
+                      title: const Text('Change Password'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _showChangePasswordDialog(context),
+                    ),
+                    const Divider(),
                     ListTile(
                       leading: const Icon(Icons.store, color: Colors.blue),
                       title: const Text('Store Locations'),
