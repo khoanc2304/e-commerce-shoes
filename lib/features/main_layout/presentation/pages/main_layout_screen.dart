@@ -44,7 +44,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       body: Stack(
         children: [
           widget.navigationShell,
-          if (widget.navigationShell.currentIndex != 3)
+          if (widget.navigationShell.currentIndex != 3 && !isAdmin)
             const ChatBubbleOverlay(),
         ],
       ),
