@@ -124,7 +124,11 @@ class _SignInScreenState extends State<SignInScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Welcome back, ${state.user.fullName}')),
             );
-            context.go('/home');
+            if (state.user.role == 'admin') {
+              context.go('/admin');
+            } else {
+              context.go('/home');
+            }
           }
         },
         builder: (context, state) {
