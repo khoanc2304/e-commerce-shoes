@@ -63,7 +63,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Dashboard')),
+      appBar: AppBar(
+        title: const Text('Admin Dashboard'),
+        leading: IconButton(
+          icon: const Icon(Icons.storefront),
+          tooltip: 'Back to Shop',
+          onPressed: () => context.go('/home'),
+        ),
+      ),
       body: BlocBuilder<AdminCubit, AdminState>(
         builder: (context, state) {
           if (state is AdminLoading) {
