@@ -191,6 +191,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.local_offer),
+                            label: const Text('Manage Vouchers'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () {
+                              context.push('/admin/vouchers');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Spacer(), // Placeholder for future feature
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     /*
                     ElevatedButton.icon(
                       icon: const Icon(Icons.download),

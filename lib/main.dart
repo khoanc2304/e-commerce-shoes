@@ -20,6 +20,8 @@ import 'features/orders/presentation/cubit/order_cubit.dart';
 import 'features/admin/data/repositories/admin_repository.dart';
 import 'features/admin/data/services/multi_imgbb_service.dart';
 import 'features/admin/presentation/cubit/admin_cubit.dart';
+import 'features/voucher/data/repositories/voucher_repository.dart';
+import 'features/voucher/presentation/cubit/voucher_cubit.dart';
 
 import 'features/product/data/repositories/product_repository.dart';
 import 'features/product/presentation/cubit/product_cubit.dart';
@@ -57,6 +59,7 @@ void main() async {
   final orderRepository = OrderRepository();
   final cartRepository = CartRepository();
   final adminRepository = AdminRepository();
+  final voucherRepository = VoucherRepository();
   final multiImgBBService = MultiImgBBService();
   final productRepository = ProductRepository();
   final chatRepository = ChatRepository();
@@ -67,6 +70,7 @@ void main() async {
     cartRepository: cartRepository,
     orderRepository: orderRepository,
     adminRepository: adminRepository,
+    voucherRepository: voucherRepository,
     multiImgBBService: multiImgBBService,
     productRepository: productRepository,
     chatRepository: chatRepository,
@@ -79,6 +83,7 @@ class ShoesXApp extends StatelessWidget {
   final CartRepository cartRepository;
   final OrderRepository orderRepository;
   final AdminRepository adminRepository;
+  final VoucherRepository voucherRepository;
   final MultiImgBBService multiImgBBService;
   final ProductRepository productRepository;
   final ChatRepository chatRepository;
@@ -90,6 +95,7 @@ class ShoesXApp extends StatelessWidget {
     required this.cartRepository,
     required this.orderRepository,
     required this.adminRepository,
+    required this.voucherRepository,
     required this.multiImgBBService,
     required this.productRepository,
     required this.chatRepository,
@@ -112,6 +118,7 @@ class ShoesXApp extends StatelessWidget {
           create: (context) => CartCubit(
             cartRepository: cartRepository,
             orderRepository: orderRepository,
+            voucherRepository: voucherRepository,
           ),
         ),
         BlocProvider<OrderCubit>(
@@ -123,6 +130,11 @@ class ShoesXApp extends StatelessWidget {
           create: (context) => AdminCubit(
             adminRepository: adminRepository,
             multiImgBBService: multiImgBBService,
+          ),
+        ),
+        BlocProvider<VoucherCubit>(
+          create: (context) => VoucherCubit(
+            voucherRepository: voucherRepository,
           ),
         ),
         BlocProvider<ProductCubit>(

@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/cart_model.dart';
+import '../../../voucher/data/models/coupon_model.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
 import 'checkout_screen.dart';
+import '../widgets/voucher_selection_bottom_sheet.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
@@ -21,7 +23,6 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  final TextEditingController _couponController = TextEditingController();
   final Set<String> _selectedItemKeys = {};
   final Set<String> _dismissedItemKeys = {};
 
@@ -120,16 +121,17 @@ class _CartScreenState extends State<CartScreen> {
                       }
                     },
                     builder: (context, state) {
-                      final appliedCoupon = context.read<CartCubit>().appliedCoupon;
+                      // Read coupon & discount reactively from state
+                      final CouponModel? appliedCoupon = state is CartCouponApplied ? state.coupon : context.read<CartCubit>().appliedCoupon;
                       double discount = 0.0;
-                      if (appliedCoupon != null) {
-                        if (appliedCoupon.discountType == 'percentage') {
-                          discount = subTotal * (appliedCoupon.discountValue / 100);
-                        } else {
-                          discount = appliedCoupon.discountValue;
-                        }
+                      if (state is CartCouponApplied) {
+                        discount = state.discountAmount;
+                      } else if (appliedCoupon != null) {
+                        // Recalculate when state changes (e.g. CartOperationSuccess after item remove)
+                        discount = appliedCoupon.calculateDiscount(subTotal);
                       }
                       final total = (subTotal - discount) > 0 ? (subTotal - discount) : 0.0;
+                      final bool isCouponLoading = state is CartCouponLoading;
 
                       return Column(
                         children: [
@@ -401,42 +403,58 @@ class _CartScreenState extends State<CartScreen> {
                                 children: [
                                   // Coupon Field
                                   if (appliedCoupon == null)
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _couponController,
-                                            decoration: InputDecoration(
-                                              hintText: 'Enter Voucher Code',
-                                              filled: true,
-                                              fillColor: Theme.of(context).brightness == Brightness.light
-                                                  ? const Color(0xFFF5F5F9)
-                                                  : const Color(0xFF1C1C2A),
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(12),
-                                                borderSide: BorderSide.none,
+                                    InkWell(
+                                      onTap: isCouponLoading ? null : () async {
+                                        if (_selectedItemKeys.isEmpty) {
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least 1 item to apply coupon.')));
+                                          return;
+                                        }
+                                        final code = await showModalBottomSheet<String>(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          backgroundColor: Colors.transparent,
+                                          builder: (context) => Padding(
+                                            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                                            child: FractionallySizedBox(
+                                              heightFactor: 0.7,
+                                              child: VoucherSelectionBottomSheet(subTotal: subTotal),
+                                            ),
+                                          ),
+                                        );
+                                        if (code != null && code.isNotEmpty && mounted) {
+                                          context.read<CartCubit>().applyCoupon(code, subTotal);
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).brightness == Brightness.light
+                                              ? const Color(0xFFF5F5F9)
+                                              : const Color(0xFF1C1C2A),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.local_offer_outlined, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), size: 20),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                'Select or enter voucher...',
+                                                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5)),
                                               ),
                                             ),
-                                            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onBackground),
-                                          ),
+                                            if (isCouponLoading)
+                                              const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              )
+                                            else
+                                              Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5)),
+                                          ],
                                         ),
-                                        const SizedBox(width: 10),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            if (_couponController.text.isNotEmpty && _selectedItemKeys.isNotEmpty) {
-                                              context.read<CartCubit>().applyCoupon(_couponController.text.trim(), subTotal);
-                                            } else if (_selectedItemKeys.isEmpty) {
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least 1 item to apply coupon.')));
-                                            }
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                          child: const Text('Apply'),
-                                        ),
-                                      ],
+                                      ),
                                     )
                                   else
                                     Container(
@@ -503,6 +521,8 @@ class _CartScreenState extends State<CartScreen> {
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
+                                      // Only disable during checkout (CartLoading).
+                                      // CartCouponLoading does NOT block checkout.
                                       onPressed: (state is CartLoading || _selectedItemKeys.isEmpty)
                                           ? null
                                           : () {

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../data/models/coupon_model.dart';
+import '../../../voucher/data/models/coupon_model.dart';
 
 abstract class CartState extends Equatable {
   const CartState();
@@ -10,7 +10,13 @@ abstract class CartState extends Equatable {
 
 class CartInitial extends CartState {}
 
+/// Full-screen loading state — used during checkout / heavy operations.
+/// Disables the Checkout button.
 class CartLoading extends CartState {}
+
+/// Lightweight loading state — used ONLY while validating a coupon code.
+/// Does NOT disable the Checkout button.
+class CartCouponLoading extends CartState {}
 
 class CartOperationSuccess extends CartState {
   final String message;
@@ -22,10 +28,13 @@ class CartOperationSuccess extends CartState {
 
 class CartCouponApplied extends CartState {
   final CouponModel coupon;
-  const CartCouponApplied(this.coupon);
+  /// Pre-computed discount amount based on the subtotal at apply time.
+  final double discountAmount;
+
+  const CartCouponApplied(this.coupon, {required this.discountAmount});
 
   @override
-  List<Object?> get props => [coupon];
+  List<Object?> get props => [coupon, discountAmount];
 }
 
 class CartCheckoutSuccess extends CartState {

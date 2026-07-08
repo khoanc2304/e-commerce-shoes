@@ -22,6 +22,9 @@ import '../../features/product/data/models/product_model.dart';
 import '../../features/product/presentation/pages/product_detail_screen.dart';
 import '../../features/product/presentation/pages/search_filter_screen.dart';
 import '../../features/product/presentation/pages/product_comparison_screen.dart';
+import '../../features/voucher/presentation/pages/voucher_list_screen.dart';
+import '../../features/voucher/presentation/pages/voucher_management_screen.dart';
+import '../../features/voucher/data/models/coupon_model.dart';
 
 class AppRouter {
   // Pass the AuthCubit or Auth state stream here if doing real redirection
@@ -137,6 +140,17 @@ class AppRouter {
         builder: (BuildContext context, GoRouterState state) {
           final product = state.extra as ProductModel?;
           return AdminProductManagement(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/admin/vouchers',
+        builder: (BuildContext context, GoRouterState state) => const VoucherListScreen(),
+      ),
+      GoRoute(
+        path: '/admin/vouchers/add_edit',
+        builder: (BuildContext context, GoRouterState state) {
+          final voucher = state.extra as CouponModel?;
+          return VoucherManagementScreen(voucher: voucher);
         },
       ),
       GoRoute(
