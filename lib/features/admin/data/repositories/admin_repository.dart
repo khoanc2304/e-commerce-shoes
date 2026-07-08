@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../product/data/models/product_model.dart';
-import '../../../cart/data/models/coupon_model.dart';
+
 import '../../../orders/data/models/order_model.dart';
 
 class AdminRepository {
@@ -80,26 +80,6 @@ class AdminRepository {
     }
   }
 
-  // --- Coupon Management ---
-  Future<void> addCoupon(CouponModel coupon) async {
-    try {
-      await _firestore
-          .collection('coupons')
-          .doc(coupon.couponId)
-          .set(coupon.toMap());
-    } catch (e) {
-      throw Exception('Failed to add coupon: $e');
-    }
-  }
 
-  Future<void> updateCoupon(CouponModel coupon) async {
-    try {
-      await _firestore
-          .collection('coupons')
-          .doc(coupon.couponId)
-          .update(coupon.toMap());
-    } catch (e) {
-      throw Exception('Failed to update coupon: $e');
-    }
-  }
+
 }

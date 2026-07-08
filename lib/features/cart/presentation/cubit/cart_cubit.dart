@@ -1,21 +1,25 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/cart_repository.dart';
 import '../../data/models/cart_model.dart';
-import '../../data/models/coupon_model.dart';
+import '../../../voucher/data/models/coupon_model.dart';
+import '../../../voucher/data/repositories/voucher_repository.dart';
 import '../../../orders/data/repositories/order_repository.dart';
 import 'cart_state.dart';
 
 class CartCubit extends Cubit<CartState> {
   final CartRepository _cartRepository;
   final OrderRepository _orderRepository;
+  final VoucherRepository _voucherRepository;
 
   CouponModel? appliedCoupon;
 
   CartCubit({
     required CartRepository cartRepository,
     required OrderRepository orderRepository,
+    required VoucherRepository voucherRepository,
   })  : _cartRepository = cartRepository,
         _orderRepository = orderRepository,
+        _voucherRepository = voucherRepository,
         super(CartInitial());
 
   Stream<CartModel?> getCartStream(String userId) {
@@ -50,12 +54,15 @@ class CartCubit extends Cubit<CartState> {
   }
 
   Future<void> applyCoupon(String code, double currentSubtotal) async {
-    emit(CartLoading());
+    // Use CartCouponLoading — NOT CartLoading — so the Checkout button
+    // stays enabled while the coupon is being validated.
+    emit(CartCouponLoading());
     try {
-      final coupon = await _cartRepository.validateCoupon(code, currentSubtotal);
+      final coupon = await _voucherRepository.validateCoupon(code, currentSubtotal);
       if (coupon != null) {
         appliedCoupon = coupon;
-        emit(CartCouponApplied(coupon));
+        final discountAmount = coupon.calculateDiscount(currentSubtotal);
+        emit(CartCouponApplied(coupon, discountAmount: discountAmount));
       }
     } catch (e) {
       appliedCoupon = null;
@@ -93,8 +100,17 @@ class CartCubit extends Cubit<CartState> {
         voucherApplied: appliedCoupon?.code,
         paymentMethod: paymentMethod,
       );
-      
-      // Reset local state after successful checkout
+
+      // Increment coupon usage count atomically after successful checkout
+      if (appliedCoupon != null) {
+        try {
+          await _voucherRepository.incrementCouponUsage(appliedCoupon!.couponId);
+        } catch (_) {
+          // Non-critical — don't fail the checkout if increment fails
+        }
+      }
+
+      // Reset local coupon state after successful checkout
       appliedCoupon = null;
       emit(CartCheckoutSuccess(orderId: orderId, paymentMethod: paymentMethod));
     } catch (e) {
