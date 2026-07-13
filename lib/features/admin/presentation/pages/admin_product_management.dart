@@ -30,7 +30,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
   final List<String> _availableColors = ['Black', 'White', 'Red', 'Blue', 'Grey'];
   List<String> _selectedColors = ['Black']; // Default color
   
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -77,7 +77,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
           controller: controller,
           keyboardType: keyboardType,
           autofocus: true,
-          decoration: InputDecoration(hintText: 'Enter value'),
+          decoration: const InputDecoration(hintText: 'Enter value'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
@@ -99,17 +99,23 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     if (_formKey.currentState?.validate() ?? false) {
       final isEditing = widget.product != null;
       if (!isEditing && _selectedImages.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one image for new product')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select at least one image for new product'), backgroundColor: Colors.red),
+        );
         return;
       }
 
       if (_selectedSizes.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one size')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select at least one size'), backgroundColor: Colors.red),
+        );
         return;
       }
 
       if (_selectedColors.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one color')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select at least one color'), backgroundColor: Colors.red),
+        );
         return;
       }
 
@@ -146,17 +152,50 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     }
   }
 
+  Widget _buildSectionCard({required String title, required List<Widget> children, required Color cardColor, required Color borderColor}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDark ? const Color(0xFF161622) : Colors.white;
+    final Color borderColor = isDark ? const Color(0xFF232332) : const Color(0xFFEEEEF4);
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.product != null ? 'Edit Product' : 'Add Product')),
+      appBar: AppBar(
+        title: Text(widget.product != null ? 'Edit Product' : 'Add New Product'),
+      ),
       body: BlocConsumer<AdminCubit, AdminState>(
         listener: (context, state) {
           if (state is AdminOperationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            );
             Navigator.pop(context); // Go back
           } else if (state is AdminError) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.red));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
           }
         },
         builder: (context, state) {
@@ -171,168 +210,258 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Product Name'),
-                    validator: (val) => val!.isEmpty ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _selectedBrand,
-                    decoration: const InputDecoration(labelText: 'Brand'),
-                    items: _brands.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedBrand = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+                  // Section 1: Basic Information
+                  _buildSectionCard(
+                    title: 'Basic Details',
+                    cardColor: cardColor,
+                    borderColor: borderColor,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _priceController,
-                          decoration: const InputDecoration(labelText: 'Price'),
-                          keyboardType: TextInputType.number,
-                          validator: (val) => val!.isEmpty ? 'Required' : null,
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Product Name',
+                          hintText: 'e.g. Nike Air Max 90',
                         ),
+                        validator: (val) => val!.trim().isEmpty ? 'Product name is required' : null,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _stockController,
-                          decoration: const InputDecoration(labelText: 'Initial Stock'),
-                          keyboardType: TextInputType.number,
-                          validator: (val) => val!.isEmpty ? 'Required' : null,
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedBrand,
+                        decoration: const InputDecoration(
+                          labelText: 'Select Brand',
                         ),
+                        items: _brands.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedBrand = val);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descController,
+                        decoration: const InputDecoration(
+                          labelText: 'Product Description',
+                          hintText: 'Enter detailed features and material details...',
+                        ),
+                        maxLines: 4,
+                        validator: (val) => val!.trim().isEmpty ? 'Description is required' : null,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _descController,
-                    decoration: const InputDecoration(labelText: 'Description'),
-                    maxLines: 4,
-                    validator: (val) => val!.isEmpty ? 'Required' : null,
+
+                  // Section 2: Pricing & Inventory
+                  _buildSectionCard(
+                    title: 'Pricing & Inventory',
+                    cardColor: cardColor,
+                    borderColor: borderColor,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _priceController,
+                              decoration: const InputDecoration(
+                                labelText: 'Price (\$)',
+                                hintText: '0.00',
+                                prefixIcon: Icon(Icons.attach_money, size: 20),
+                              ),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              validator: (val) {
+                                if (val!.trim().isEmpty) return 'Required';
+                                if (double.tryParse(val.trim()) == null) return 'Invalid price';
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _stockController,
+                              decoration: const InputDecoration(
+                                labelText: 'Initial Stock',
+                                hintText: '10',
+                                prefixIcon: Icon(Icons.inventory, size: 20),
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (val) {
+                                if (val!.trim().isEmpty) return 'Required';
+                                if (int.tryParse(val.trim()) == null) return 'Must be integer';
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Available Sizes', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _availableSizes.map<Widget>((size) {
-                      final isSelected = _selectedSizes.contains(size);
-                      return ChoiceChip(
-                        label: Text(size.toString()),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedSizes.add(size);
-                              _selectedSizes.sort();
-                            } else {
-                              _selectedSizes.remove(size);
-                            }
-                          });
-                        },
-                      );
-                    }).toList()
-                      ..add(
-                        ActionChip(
-                          label: const Text('+ Other'),
-                          onPressed: () {
-                            _showAddDialog('Add Custom Size', TextInputType.number, (val) {
-                              final size = int.tryParse(val);
-                              if (size != null && !_availableSizes.contains(size)) {
-                                setState(() {
-                                  _availableSizes.add(size);
-                                  _availableSizes.sort();
+
+                  // Section 3: Product Attributes (Sizes & Colors)
+                  _buildSectionCard(
+                    title: 'Product Variants',
+                    cardColor: cardColor,
+                    borderColor: borderColor,
+                    children: [
+                      const Text(
+                        'Available Shoe Sizes',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _availableSizes.map<Widget>((size) {
+                          final isSelected = _selectedSizes.contains(size);
+                          return ChoiceChip(
+                            label: Text(size.toString()),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
                                   _selectedSizes.add(size);
                                   _selectedSizes.sort();
+                                } else {
+                                  _selectedSizes.remove(size);
+                                }
+                              });
+                            },
+                          );
+                        }).toList()
+                          ..add(
+                            ActionChip(
+                              avatar: const Icon(Icons.add, size: 16),
+                              label: const Text('Other'),
+                              onPressed: () {
+                                _showAddDialog('Add Custom Size', TextInputType.number, (val) {
+                                  final size = int.tryParse(val);
+                                  if (size != null && !_availableSizes.contains(size)) {
+                                    setState(() {
+                                      _availableSizes.add(size);
+                                      _availableSizes.sort();
+                                      _selectedSizes.add(size);
+                                      _selectedSizes.sort();
+                                    });
+                                  }
                                 });
-                              }
-                            });
-                          },
-                        ),
+                              },
+                            ),
+                          ),
                       ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Available Colors', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _availableColors.map<Widget>((color) {
-                      final isSelected = _selectedColors.contains(color);
-                      return ChoiceChip(
-                        label: Text(color),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedColors.add(color);
-                            } else {
-                              _selectedColors.remove(color);
-                            }
-                          });
-                        },
-                      );
-                    }).toList()
-                      ..add(
-                        ActionChip(
-                          label: const Text('+ Other'),
-                          onPressed: () {
-                            _showAddDialog('Add Custom Color', TextInputType.text, (val) {
-                              if (!_availableColors.contains(val)) {
-                                setState(() {
-                                  _availableColors.add(val);
-                                  _selectedColors.add(val);
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Available Colors',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _availableColors.map<Widget>((color) {
+                          final isSelected = _selectedColors.contains(color);
+                          return ChoiceChip(
+                            label: Text(color),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedColors.add(color);
+                                } else {
+                                  _selectedColors.remove(color);
+                                }
+                              });
+                            },
+                          );
+                        }).toList()
+                          ..add(
+                            ActionChip(
+                              avatar: const Icon(Icons.add, size: 16),
+                              label: const Text('Other'),
+                              onPressed: () {
+                                _showAddDialog('Add Custom Color', TextInputType.text, (val) {
+                                  if (!_availableColors.contains(val)) {
+                                    setState(() {
+                                      _availableColors.add(val);
+                                      _selectedColors.add(val);
+                                    });
+                                  }
                                 });
-                              }
-                            });
-                          },
-                        ),
+                              },
+                            ),
+                          ),
                       ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                  
-                  if (widget.product == null) ...[
-                    // Image Picker
-                    const Text('Product Images', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+
+                  // Section 4: Media Upload (Visible on creation only)
+                  if (widget.product == null)
+                    _buildSectionCard(
+                      title: 'Product Media',
+                      cardColor: cardColor,
+                      borderColor: borderColor,
                       children: [
-                        ..._selectedImages.map((file) => Stack(
+                        const Text(
+                          'Upload high-quality sneaker product images.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
                           children: [
-                            Image.file(file, width: 80, height: 80, fit: BoxFit.cover),
-                            Positioned(
-                              top: 0, right: 0,
-                              child: GestureDetector(
-                                onTap: () => setState(() => _selectedImages.remove(file)),
-                                child: const Icon(Icons.cancel, color: Colors.red),
+                            ..._selectedImages.map((file) => ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Stack(
+                                children: [
+                                  Image.file(file, width: 80, height: 80, fit: BoxFit.cover),
+                                  Positioned(
+                                    top: 2, right: 2,
+                                    child: GestureDetector(
+                                      onTap: () => setState(() => _selectedImages.remove(file)),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                        child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            )),
+                            GestureDetector(
+                              onTap: _pickImages,
+                              child: Container(
+                                width: 80, height: 80,
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E1E2E) : Colors.grey[200],
+                                  border: Border.all(color: borderColor),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined, color: Colors.grey),
+                                    SizedBox(height: 4),
+                                    Text('Add', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
                               ),
                             )
                           ],
-                        )),
-                        GestureDetector(
-                          onTap: _pickImages,
-                          child: Container(
-                            width: 80, height: 80,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.add_a_photo),
-                          ),
-                        )
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                  ],
-                  
+
+                  const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _submitProduct,
-                    child: Text(widget.product != null ? 'Update Product' : 'Create Product'),
-                  )
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                    ),
+                    child: Text(
+                      widget.product != null ? 'Save Changes' : 'Publish Product',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),

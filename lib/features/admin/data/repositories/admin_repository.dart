@@ -26,6 +26,21 @@ class AdminRepository {
     }
   }
 
+  Future<List<OrderModel>> getAllOrders() async {
+    try {
+      final snapshot = await _firestore
+          .collection('orders')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch all orders: $e');
+    }
+  }
+
   // --- Product Management ---
   Future<(List<ProductModel>, DocumentSnapshot?)> getAllProducts({int limit = 15, DocumentSnapshot? startAfter}) async {
     try {

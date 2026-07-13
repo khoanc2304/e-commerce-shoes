@@ -19,9 +19,14 @@ class AdminCubit extends Cubit<AdminState> {
   Future<void> loadAnalytics() async {
     emit(AdminLoading());
     try {
-      final orders = await _adminRepository.getCompletedOrders();
-      final totalRevenue = orders.fold(0.0, (sum, order) => sum + order.totalPrice);
-      emit(AdminAnalyticsLoaded(orders, totalRevenue));
+      final completedOrders = await _adminRepository.getCompletedOrders();
+      final allOrders = await _adminRepository.getAllOrders();
+      final totalRevenue = completedOrders.fold(0.0, (sum, order) => sum + order.totalPrice);
+      emit(AdminAnalyticsLoaded(
+        completedOrders: completedOrders,
+        allOrders: allOrders,
+        totalRevenue: totalRevenue,
+      ));
     } catch (e) {
       emit(AdminError(e.toString()));
     }
