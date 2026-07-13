@@ -37,7 +37,7 @@ class _AdminStoreManagementScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Store'),
-        content: const Text('Are you sure you want to delete this store?'),
+        content: const Text('Are you sure you want to delete this store location?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -46,7 +46,7 @@ class _AdminStoreManagementScreenState
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -59,6 +59,10 @@ class _AdminStoreManagementScreenState
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDark ? const Color(0xFF161622) : Colors.white;
+    final Color borderColor = isDark ? const Color(0xFF232332) : const Color(0xFFEEEEF4);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Store Management'),
@@ -70,62 +74,117 @@ class _AdminStoreManagementScreenState
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
           }
 
           final stores = snapshot.data ?? [];
 
           if (stores.isEmpty) {
-            return const Center(
-              child: Text(
-                'No stores found.\nClick + to add a new store location.',
-                textAlign: TextAlign.center,
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.store_outlined, size: 48, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No physical stores mapped yet.\nTap + to add a store location.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Store Location'),
+                      onPressed: () => _showAddStoreDialog(context),
+                    )
+                  ],
+                ),
               ),
             );
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             itemCount: stores.length,
             itemBuilder: (context, index) {
               final store = stores[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.store, color: Colors.blue),
-                  title: Text(store.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(store.address),
-                      const SizedBox(height: 4),
-                      Row(
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  border: Border.all(color: borderColor),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Icon placeholder
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.storefront_outlined, color: Colors.purple, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    // Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.phone, size: 14, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(store.phone),
+                          Text(
+                            store.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            store.address,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.phone_outlined, size: 14, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Text(
+                                store.phone,
+                                style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.map_outlined, size: 14, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Lat: ${store.latitude.toStringAsFixed(4)}, Lng: ${store.longitude.toStringAsFixed(4)}',
+                                style: const TextStyle(fontSize: 10, color: Colors.grey, fontFamily: 'monospace'),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text('Lat: ${store.latitude}, Lng: ${store.longitude}',
-                          style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                    ],
-                  ),
-                  isThreeLine: true,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _showAddStoreDialog(context, store: store),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteStore(store.id),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Action controls
+                    Column(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                          onPressed: () => _showAddStoreDialog(context, store: store),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                          onPressed: () => _deleteStore(store.id),
+                        ),
+                      ],
+                    )
+                  ],
                 ),
               );
             },
@@ -134,6 +193,9 @@ class _AdminStoreManagementScreenState
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddStoreDialog(context),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add),
       ),
     );

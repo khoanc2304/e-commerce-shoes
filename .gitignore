@@ -47,3 +47,5 @@ app.*.map.json
 # Environment secrets
 .env.json
 
+config.bat
+node_modules

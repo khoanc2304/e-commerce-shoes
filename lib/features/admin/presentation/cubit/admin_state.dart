@@ -16,12 +16,17 @@ class AdminLoading extends AdminState {}
 
 class AdminAnalyticsLoaded extends AdminState {
   final List<OrderModel> completedOrders;
+  final List<OrderModel> allOrders;
   final double totalRevenue;
 
-  const AdminAnalyticsLoaded(this.completedOrders, this.totalRevenue);
+  const AdminAnalyticsLoaded({
+    required this.completedOrders,
+    required this.allOrders,
+    required this.totalRevenue,
+  });
 
   @override
-  List<Object?> get props => [completedOrders, totalRevenue];
+  List<Object?> get props => [completedOrders, allOrders, totalRevenue];
 }
 
 class AdminProductsLoaded extends AdminState {

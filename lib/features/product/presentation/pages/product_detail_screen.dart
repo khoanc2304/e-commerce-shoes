@@ -30,6 +30,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int? _selectedSize;
   String? _selectedColor; 
   int _quantity = 1;
+  int _activeImageIndex = 0;
 
   bool _isLoadingReviews = true;
   List<ReviewModel> _reviews = [];
@@ -149,7 +150,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Update Rating', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const Text('Update Rating', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -161,13 +162,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: Icon(
                             index < tempRating ? Icons.star : Icons.star_border,
                             color: Colors.orange,
-                            size: 48,
+                            size: 44,
                           ),
                         );
                       }),
                     ),
                     const SizedBox(height: 16),
-                    Text(tempRating == 0 ? 'No rating' : tempRating.toString(), style: const TextStyle(fontSize: 18)),
+                    Text(tempRating == 0 ? 'No rating' : tempRating.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
@@ -207,15 +208,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 16,
-            right: 16,
-            top: 16,
+            left: 18,
+            right: 18,
+            top: 18,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(existingReview == null ? 'Add Review' : 'Edit Review', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(existingReview == null ? 'Add Review' : 'Edit Review', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               StatefulBuilder(
                 builder: (context, setModalState) {
@@ -285,17 +286,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     required String tooltip,
     required VoidCallback onPressed,
   }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light
-            ? Colors.white.withOpacity(0.9)
-            : const Color(0xFF161622).withOpacity(0.9),
+        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -311,6 +311,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardColor = isDark ? const Color(0xFF161622) : Colors.white;
+    final Color borderColor = isDark ? const Color(0xFF232332) : const Color(0xFFEEEEF4);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -322,7 +325,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         leading: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: _buildCircleAction(
-            icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onBackground),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black87),
             tooltip: 'Back',
             onPressed: () => context.pop(),
           ),
@@ -332,7 +335,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             builder: (context, authState) {
               if (authState is AuthAuthenticated) {
                 return _buildCircleAction(
-                  icon: Icon(Icons.share, color: Theme.of(context).colorScheme.onBackground),
+                  icon: Icon(Icons.share_outlined, color: isDark ? Colors.white : Colors.black87),
                   tooltip: 'Share to Chat',
                   onPressed: () async {
                     try {
@@ -352,11 +355,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         },
                       );
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product shared to chat!')));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product shared to chat!'), backgroundColor: Colors.green));
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to share: $e'), backgroundColor: Colors.red));
                       }
                     }
                   },
@@ -371,7 +374,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               return _buildCircleAction(
                 icon: Icon(
                   isComparing ? Icons.compare_arrows : Icons.compare_arrows_outlined,
-                  color: isComparing ? Theme.of(context).primaryColor : Theme.of(context).colorScheme.onBackground,
+                  color: isComparing ? Theme.of(context).primaryColor : (isDark ? Colors.white : Colors.black87),
                 ),
                 tooltip: 'Compare',
                 onPressed: () {
@@ -398,7 +401,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         label: Text(itemCount.toString()),
                         isLabelVisible: itemCount > 0,
                         backgroundColor: Theme.of(context).primaryColor,
-                        child: Icon(Icons.shopping_cart, color: Theme.of(context).colorScheme.onBackground),
+                        child: Icon(Icons.shopping_cart_outlined, color: isDark ? Colors.white : Colors.black87),
                       ),
                       tooltip: 'Cart',
                       onPressed: () {
@@ -409,7 +412,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 );
               }
               return _buildCircleAction(
-                icon: Icon(Icons.shopping_cart, color: Theme.of(context).colorScheme.onBackground),
+                icon: Icon(Icons.shopping_cart_outlined, color: isDark ? Colors.white : Colors.black87),
                 tooltip: 'Cart',
                 onPressed: () {
                   context.push('/cart');
@@ -417,6 +420,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -424,29 +428,63 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
+            // Gallery container
             Container(
-              height: 420,
+              height: 400,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.light
-                    ? const Color(0xFFF5F5F9)
-                    : const Color(0xFF1C1C2A),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+                color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF5F5F9),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(36)),
               ),
               child: SafeArea(
                 bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24.0, 10.0, 24.0, 24.0),
-                  child: product.images.isEmpty
-                      ? const Center(child: Icon(Icons.image, size: 100, color: Colors.grey))
-                      : Hero(
-                          tag: 'product_img_${product.productId}',
-                          child: CustomImageView(
-                            imageUrl: product.images.first, 
-                            fit: BoxFit.contain,
-                          ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: product.images.isEmpty
+                          ? const Center(child: Icon(Icons.image_outlined, size: 80, color: Colors.grey))
+                          : PageView.builder(
+                              itemCount: product.images.length,
+                              onPageChanged: (idx) {
+                                setState(() => _activeImageIndex = idx);
+                              },
+                              itemBuilder: (context, idx) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  child: Hero(
+                                    tag: 'product_img_${product.productId}',
+                                    child: CustomImageView(
+                                      imageUrl: product.images[idx], 
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    // Visual Page Indicators
+                    if (product.images.length > 1) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(product.images.length, (idx) {
+                            final isActive = _activeImageIndex == idx;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              height: 6,
+                              width: isActive ? 18 : 6,
+                              decoration: BoxDecoration(
+                                color: isActive ? Theme.of(context).primaryColor : Colors.grey[400],
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            );
+                          }),
                         ),
+                      )
+                    ]
+                  ],
                 ),
               ),
             ),
@@ -456,11 +494,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title & Price
+                  // Title, Brand & Price
                   Text(
                     product.brand.toUpperCase(),
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w900,
                       color: Theme.of(context).primaryColor,
                       letterSpacing: 1.5,
@@ -475,9 +513,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         child: Text(
                           product.name,
                           style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF1A1B2D),
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -486,7 +524,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Text(
                         '\$${product.basePrice.toStringAsFixed(2)}',
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
                           color: Theme.of(context).primaryColor,
                         ),
@@ -495,40 +533,64 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 10),
                   
-                  // Rating
+                  // Rating score indicators
                   Row(
                     children: [
-                      const Icon(Icons.star, color: Colors.orange, size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${product.averageRating.toStringAsFixed(1)} (${product.reviewCount} Reviews)',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.orange, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              product.averageRating.toStringAsFixed(1),
+                              style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black, fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Text(
-                        '${product.salesCount} Sold', 
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), 
-                          fontWeight: FontWeight.w500,
+                        '(${product.reviewCount} Reviews)',
+                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${product.salesCount} Sold', 
+                          style: const TextStyle(
+                            color: Colors.teal, 
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   
-                  Divider(height: 48, color: Theme.of(context).dividerColor.withOpacity(0.1)),
+                  const Divider(height: 48),
                   
                   // Description
-                  Text('Description', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Theme.of(context).colorScheme.onBackground)),
+                  const Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   Text(
                     product.description,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7), height: 1.5, fontSize: 14),
+                    style: TextStyle(color: isDark ? Colors.grey[400] : const Color(0xFF4A4B5D), height: 1.5, fontSize: 13),
                   ),
                   
-                  Divider(height: 48, color: Theme.of(context).dividerColor.withOpacity(0.1)),
+                  const Divider(height: 48),
                   
-                  // Sizes
-                  Text('Available Sizes', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Theme.of(context).colorScheme.onBackground)),
+                  // Sizes circles selection
+                  const Text('Available Sizes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 10,
@@ -541,27 +603,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          width: 52,
-                          height: 52,
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
-                            color: isSelected ? Theme.of(context).colorScheme.onBackground : Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
+                            color: isSelected ? Theme.of(context).primaryColor : cardColor,
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: isSelected 
-                                  ? Theme.of(context).colorScheme.onBackground 
-                                  : Theme.of(context).dividerColor.withOpacity(0.15),
-                              width: 1.5,
+                              color: isSelected ? Colors.transparent : borderColor,
+                              width: 1.2,
                             ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Theme.of(context).primaryColor.withOpacity(0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    )
+                                  ]
+                                : null,
                           ),
                           child: Center(
                             child: Text(
                               size.toString(),
                               style: TextStyle(
-                                color: isSelected 
-                                    ? Theme.of(context).colorScheme.background 
-                                    : Theme.of(context).colorScheme.onBackground,
+                                color: isSelected ? Colors.white : (isDark ? Colors.grey[300] : const Color(0xFF1A1B2D)),
                                 fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                                fontSize: 14,
                               ),
                             ),
                           ),
@@ -570,11 +637,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     }).toList(),
                   ),
                   
-                  Divider(height: 48, color: Theme.of(context).dividerColor.withOpacity(0.1)),
+                  const Divider(height: 48),
                   
-                  // Colors
+                  // Colors capsules selection
                   if (product.colors.isNotEmpty) ...[
-                    Text('Available Colors', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Theme.of(context).colorScheme.onBackground)),
+                    const Text('Available Colors', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 10,
@@ -587,36 +654,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                             decoration: BoxDecoration(
-                              color: isSelected ? Theme.of(context).colorScheme.onBackground : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
+                              color: isSelected ? Theme.of(context).primaryColor : cardColor,
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: isSelected 
-                                    ? Theme.of(context).colorScheme.onBackground 
-                                    : Theme.of(context).dividerColor.withOpacity(0.15),
-                                width: 1.5,
+                                color: isSelected ? Colors.transparent : borderColor,
+                                width: 1.2,
                               ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: Theme.of(context).primaryColor.withOpacity(0.2),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 3),
+                                      )
+                                    ]
+                                  : null,
                             ),
                             child: Text(
                               color,
                               style: TextStyle(
-                                color: isSelected 
-                                    ? Theme.of(context).colorScheme.background 
-                                    : Theme.of(context).colorScheme.onBackground,
+                                color: isSelected ? Colors.white : (isDark ? Colors.grey[300] : const Color(0xFF1A1B2D)),
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                fontSize: 13,
                               ),
                             ),
                           ),
                         );
                       }).toList(),
                     ),
-                    Divider(height: 48, color: Theme.of(context).dividerColor.withOpacity(0.1)),
+                    const Divider(height: 48),
                   ],
 
-                  // Reviews Section
-                  Text('Reviews', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Theme.of(context).colorScheme.onBackground)),
+                  // Reviews Block
+                  const Text('Customer Reviews', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 16),
                   
                   BlocBuilder<AuthCubit, AuthState>(
@@ -627,7 +699,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           children: [
                             Row(
                               children: [
-                                Text('Your Rating: ', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
+                                Text('Your Rating: ', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
                                 ...List.generate(5, (index) {
                                   return GestureDetector(
                                     onTap: () {
@@ -636,14 +708,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     child: Icon(
                                       index < _inlineRating ? Icons.star : Icons.star_border,
                                       color: Colors.orange,
-                                      size: 26,
+                                      size: 24,
                                     ),
                                   );
                                 }),
                                 if (_inlineRating == 0.0)
                                   Padding(
                                     padding: const EdgeInsets.only(left: 8.0),
-                                    child: Text('(Tap to rate)', style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), fontSize: 12)),
+                                    child: Text('(Tap to rate)', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
                                   )
                               ],
                             ),
@@ -657,13 +729,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     decoration: InputDecoration(
                                       hintText: 'Write your review...',
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(14),
                                         borderSide: BorderSide.none,
                                       ),
                                       filled: true,
-                                      fillColor: Theme.of(context).brightness == Brightness.light
-                                          ? const Color(0xFFF5F5F9)
-                                          : const Color(0xFF1C1C2A),
+                                      fillColor: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF5F5F9),
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                     ),
                                     maxLines: null,
@@ -672,9 +742,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 const SizedBox(width: 10),
                                 CircleAvatar(
                                   backgroundColor: Theme.of(context).primaryColor,
-                                  radius: 24,
+                                  radius: 22,
                                   child: IconButton(
-                                    icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                                    icon: const Icon(Icons.send, color: Colors.white, size: 18),
                                     onPressed: () {
                                       if (_inlineRating == 0 && _inlineCommentController.text.trim().isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a rating or a comment')));
@@ -708,7 +778,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   _isLoadingReviews
                       ? const Center(child: CircularProgressIndicator())
                       : _reviews.isEmpty
-                          ? Text('No reviews yet. Be the first!', style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5)))
+                          ? Text('No reviews yet. Be the first!', style: TextStyle(color: Colors.grey[500]))
                           : ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
@@ -725,7 +795,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         decoration: BoxDecoration(
                                           border: Border(
                                             bottom: BorderSide(
-                                              color: Theme.of(context).dividerColor.withOpacity(0.08),
+                                              color: borderColor,
                                               width: 1,
                                             ),
                                           ),
@@ -735,10 +805,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           children: [
                                             CircleAvatar(
                                               backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                                              radius: 20,
+                                              radius: 18,
                                               child: Text(
                                                 review.userName.isNotEmpty ? review.userName[0].toUpperCase() : 'U',
-                                                style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                                                style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
                                               ),
                                             ),
                                             const SizedBox(width: 12),
@@ -754,7 +824,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                           review.userName, 
                                                           style: TextStyle(
                                                             fontWeight: FontWeight.bold, 
-                                                            color: Theme.of(context).colorScheme.onBackground,
+                                                            color: isDark ? Colors.white : Colors.black,
+                                                            fontSize: 13,
                                                           ),
                                                           maxLines: 1,
                                                           overflow: TextOverflow.ellipsis,
@@ -764,32 +835,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                       GestureDetector(
                                                         onTap: isMyReview ? () => _showEditRatingModal(context, review, authState.user.uid, authState.user.fullName) : null,
                                                         child: Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                                           decoration: BoxDecoration(
-                                                            color: Theme.of(context).brightness == Brightness.light
-                                                                ? const Color(0xFFF5F5F9)
-                                                                : const Color(0xFF1C1C2A),
-                                                            borderRadius: BorderRadius.circular(10),
+                                                            color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF5F5F9),
+                                                            borderRadius: BorderRadius.circular(8),
                                                           ),
                                                           child: Row(
                                                             children: [
                                                               if (review.rating > 0) ...[
-                                                                const Icon(Icons.star, size: 14, color: Colors.orange),
+                                                                const Icon(Icons.star, size: 12, color: Colors.orange),
                                                                 const SizedBox(width: 4),
                                                                 Text(
                                                                   review.rating.toString(), 
                                                                   style: TextStyle(
                                                                     fontWeight: FontWeight.bold, 
-                                                                    color: Theme.of(context).colorScheme.onBackground, 
-                                                                    fontSize: 12,
+                                                                    color: isDark ? Colors.white : Colors.black, 
+                                                                    fontSize: 11,
                                                                   ),
                                                                 ),
                                                               ] else
                                                                 Text(
                                                                   'No rating', 
                                                                   style: TextStyle(
-                                                                    fontSize: 11, 
-                                                                    color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), 
+                                                                    fontSize: 10, 
+                                                                    color: Colors.grey[500], 
                                                                     fontStyle: FontStyle.italic,
                                                                   ),
                                                                 ),
@@ -804,9 +873,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                     Text(
                                                       review.comment, 
                                                       style: TextStyle(
-                                                        color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                                                        color: isDark ? Colors.grey[300] : const Color(0xFF4A4B5D),
                                                         height: 1.4,
-                                                        fontSize: 14,
+                                                        fontSize: 13,
                                                       ),
                                                     ),
                                                   ],
@@ -823,7 +892,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                             if (_reviews.length > _visibleReviewsCount)
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
                                 child: Center(
                                   child: TextButton(
                                     onPressed: () {
@@ -831,38 +900,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         _visibleReviewsCount += 5;
                                       });
                                     },
-                                    child: const Text('Xem thêm'),
+                                    child: const Text('Show more comments', style: TextStyle(fontWeight: FontWeight.bold)),
                                   ),
                                 ),
                               ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            _buildSimilarProducts(),
-            const SizedBox(height: 24),
-          ],
+              _buildSimilarProducts(borderColor, cardColor, isDark),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
-      ),
       bottomNavigationBar: SafeArea(
         child: Container(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.white
-                : const Color(0xFF161622),
-            borderRadius: BorderRadius.circular(24),
+            color: cardColor,
+            borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 24,
-                spreadRadius: 1,
-                offset: const Offset(0, 8),
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
               ),
             ],
             border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.08),
-              width: 1,
+              color: borderColor,
+              width: 1.2,
             ),
           ),
           child: Column(
@@ -872,38 +938,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Quantity', 
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)
+                    'Purchase Quantity', 
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)
                   ),
                   Container(
-                    height: 36,
+                    height: 34,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.light
-                          ? const Color(0xFFF5F5F9)
-                          : const Color(0xFF1C1C2A),
-                      borderRadius: BorderRadius.circular(8),
+                      color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF5F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: borderColor),
                     ),
                     child: Row(
                       children: [
                         IconButton(
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          icon: Icon(Icons.remove, size: 14, color: Theme.of(context).colorScheme.onBackground),
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          icon: Icon(Icons.remove, size: 14, color: isDark ? Colors.white : Colors.black),
                           onPressed: () {
                             if (_quantity > 1) setState(() => _quantity--);
                           },
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 6.0),
                           child: Text(
                             '$_quantity', 
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)
                           ),
                         ),
                         IconButton(
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          icon: Icon(Icons.add, size: 14, color: Theme.of(context).colorScheme.onBackground),
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          icon: Icon(Icons.add, size: 14, color: isDark ? Colors.white : Colors.black),
                           onPressed: () {
                             setState(() => _quantity++);
                           },
@@ -956,10 +1021,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Add to Cart', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text('Add to Cart', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -969,7 +1033,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildSimilarProducts() {
+  Widget _buildSimilarProducts(Color borderColor, Color cardColor, bool isDark) {
     return BlocBuilder<ProductCubit, ProductState>(
       builder: (context, state) {
         if (state is ProductsLoaded) {
@@ -984,21 +1048,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 32),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
-                  'Sản phẩm tương tự',
+                  'Similar Products',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onBackground,
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               SizedBox(
-                height: 280,
+                height: 260,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1010,59 +1073,61 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         context.push('/home/product', extra: p);
                       },
                       child: Container(
-                        width: 160,
-                        margin: const EdgeInsets.only(right: 16),
-                        child: Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                  ),
-                                  child: p.images.isEmpty
-                                      ? const Center(child: Icon(Icons.image, size: 50, color: Colors.grey))
-                                      : ClipRRect(
-                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                          child: CustomImageView(imageUrl: p.images.first, fit: BoxFit.cover, width: double.infinity),
-                                        ),
+                        width: 150,
+                        margin: const EdgeInsets.only(right: 14),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          border: Border.all(color: borderColor),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF5F5F9),
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      p.brand.toUpperCase(),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 10,
-                                        color: Theme.of(context).primaryColor,
-                                        letterSpacing: 1.0,
+                                child: p.images.isEmpty
+                                    ? const Center(child: Icon(Icons.image, size: 40, color: Colors.grey))
+                                    : ClipRRect(
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                                        child: CustomImageView(imageUrl: p.images.first, fit: BoxFit.cover, width: double.infinity),
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      p.name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '\$${p.basePrice.toStringAsFixed(2)}',
-                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-                                    ),
-                                  ],
-                                ),
+                                width: double.infinity,
                               ),
-                            ],
-                          ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    p.brand.toUpperCase(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 9,
+                                      color: Theme.of(context).primaryColor,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    p.name,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '\$${p.basePrice.toStringAsFixed(2)}',
+                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Theme.of(context).primaryColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
